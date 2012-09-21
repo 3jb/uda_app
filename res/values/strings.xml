@@ -1,4 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">udacity</string>
+    <string name="app_name">Udacity</string>
+    <string name="alert_title">heads up</string>
+    <string name="email_hint">email address</string>
+    <string name="password_hint">password</string>
+    <string name="class_name_00">Statistics</string>
+    <string name="class_name_01">Artifcial Intelligence</string>
+    <string name="status_start">Hello Udacity</string>
 </resources>
