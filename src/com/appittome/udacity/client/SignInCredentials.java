@@ -12,6 +12,12 @@ public class SignInCredentials {
   private static final String METHOD = "account.sign-in";
   private static final String VERSION = "dacity-45";
 
+  public class NullCredentialsException extends NullPointerException {
+    public NullCredentialsException(String msg) {
+      super(msg);
+    }
+  }
+
   public SignInCredentials() {
     this(null,null);  
   }
@@ -34,14 +40,18 @@ public class SignInCredentials {
     this.csrf_token = csrf_token;
   }
   //public attributes
-  public String getEmail(){
+  public String getEmail() throws NullCredentialsException {
+    if (this.email == null) 
+      throw new NullCredentialsException("email");
     return this.email;
-  }
+  } 
   public int getPasswordLength() {
     return this.password.length();
   }
   //private attributes
-  protected String getPassword(){
+  protected String getPassword() throws NullCredentialsException {
+    if (this.email == null) 
+      throw new NullCredentialsException("email");
     return this.password;
   }
   protected String getCsrf_token() {
@@ -51,7 +61,7 @@ public class SignInCredentials {
   public JSONObject toJSON() {
     JSONObject retObj = new JSONObject();
     JSONObject data = new JSONObject();
-
+    Log.w("SignInCredentials.toJSON", "begin assembling JSON…");
     try {
       //User relavant attibutes
       data.put("email", getEmail());
@@ -62,7 +72,10 @@ public class SignInCredentials {
       retObj.put("version", VERSION);
       retObj.put("csrf_token", getCsrf_token());
     } catch (JSONException e) {
-      Log.w("collectForSubmission()", e);
+      Log.w("SignInCredentials.toJSON()", e);
+    } catch (NullCredentialsException e) {
+      Log.w("SignInCredentials.toJSON()", e);
+      throw new NullCredentialsException("Cannot Construct Credentials");
     }
     return retObj;
   }

@@ -38,6 +38,9 @@ public class Connection
   public void checkCredentials() {
     new LoadWithCredentialsTask().execute(url);
   }
+  public void fetchNewCookie() {
+    new FetchNewCookieTask().execute(url);
+  }
   private boolean loggedInto(String page) {
     return page.contains("Sign Out");
   }
@@ -59,7 +62,7 @@ public class Connection
     @Override
     protected void onPostExecute(String result) {
       if(!loggedInto(result)){
-	new FetchNewCookieTask().execute(url);
+	fetchNewCookie();
       } else {
 	//TODO possible nasty loop here…
 	showMessage("Logged In");
@@ -70,6 +73,7 @@ public class Connection
 
   private class FetchNewCookieTask extends AsyncTask<URL, Integer, String>
   {
+    public static final String MISSING_CREDENTIALS = "001";
     @Override
     protected String doInBackground(URL... urls){
       String retVal = "";
@@ -77,34 +81,32 @@ public class Connection
 	retVal = sendJSON(getJSONCredentials(), new URL(urls[0], AJAX_SPEC) );
       } catch (IOException e) {
 	retVal =  "Unable to retreive webpage.  URL may be invalid";
-      } finally {
-	return retVal;
+      } catch (NullPointerException e){
+	retVal = MISSING_CREDENTIALS;
       }
+      return retVal;
+      //}
     }
     @Override
     protected void onPostExecute(String result) {
-      try {
-	showMessage("result::" + result);
-	JSONObject JSONResp = new JSONObject(result);
+      if (!result.equals(MISSING_CREDENTIALS)){
 	try {
-	  String reply = JSONResp.getString("win");
-	  //showMessage(reply);
-	  if( reply.compareTo("loaded cookie") == 0 ) {
-	    try {
-	      new LoadWithCredentialsTask().execute(new URL("http://192.168.1.11:3000"));
-	    } catch  (MalformedURLException e) {
-	      Log.w("AuthenticateTask", e);
+	  JSONObject JSONResp = new JSONObject(result);
+	  try {
+	    String reply = JSONResp.getString("win");
+	    //showMessage(reply);
+	    if( reply.compareTo("loaded cookie") == 0 ) {
+	      checkCredentials();
 	    }
+	  } catch (JSONException e) {
+	    showMessage(JSONResp.toString(2));
 	  }
 	} catch (JSONException e) {
-	  showMessage(JSONResp.toString(2));
+	  showMessage("Invalid JSON returned::" + e);
 	}
-      } catch (JSONException e) {
-	showMessage("Invalid JSON returned::" + e);
       }
     }
   }
-
 //---CONNECTION TYPES---//
   private String grabPage(URL url) throws IOException
   {
