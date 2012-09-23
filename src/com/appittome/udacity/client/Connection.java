@@ -55,8 +55,9 @@ public class Connection
       try {
         result = grabPage(urls[0]);
       } catch (IOException e) {
-	showMessage("IOException in grabPage(url)");
+	//TODO create notification / action
       }
+
       return result;
     }
     @Override
@@ -75,17 +76,23 @@ public class Connection
   {
     public static final String MISSING_CREDENTIALS = "001";
     @Override
-    protected String doInBackground(URL... urls){
+    protected String doInBackground(URL... urls) {
       String retVal = "";
       try{
 	retVal = sendJSON(getJSONCredentials(), new URL(urls[0], AJAX_SPEC) );
+      }catch (SocketTimeoutException e){
+	Log.w("Udacity.Connection.FetchNewCookieTask::",
+		"Readtimeout - the server is slow");
       } catch (IOException e) {
-	retVal =  "Unable to retreive webpage.  URL may be invalid";
+	//TODO create notification / action
+	Log.w("Udacity.Connection.FetchNewCookieTask::",e);
       } catch (NullPointerException e){
 	retVal = MISSING_CREDENTIALS;
+      }catch (Exception e){
+	Log.w("Udacity.Connection.FetchNewCookieTask::",e);
       }
+      Log.w("Udacity.Connection.FetchNewCookieTask ->", retVal);
       return retVal;
-      //}
     }
     @Override
     protected void onPostExecute(String result) {
@@ -94,7 +101,6 @@ public class Connection
 	  JSONObject JSONResp = new JSONObject(result);
 	  try {
 	    String reply = JSONResp.getString("win");
-	    //showMessage(reply);
 	    if( reply.compareTo("loaded cookie") == 0 ) {
 	      checkCredentials();
 	    }
@@ -144,7 +150,7 @@ public class Connection
     int len = 0;
 
     HttpURLConnection conn = (HttpURLConnection) url.openConnection();
-    conn.setReadTimeout( 10000 /*milliseconds*/ );
+    conn.setReadTimeout( 15*1000 /*1000 milliseconds = 1 sec */ );
     conn.setConnectTimeout( 15000 /* milliseconds */ );
     conn.setRequestMethod("POST");
     conn.setDoInput(true);
@@ -167,7 +173,7 @@ public class Connection
     try {
       len = Integer.parseInt(conn.getHeaderField("Content-Length"));
     } catch (NumberFormatException e) {
-      len = 500;
+      len = 50;
     }
     try {
       is = conn.getInputStream();

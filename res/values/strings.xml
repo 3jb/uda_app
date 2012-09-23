@@ -7,4 +7,5 @@
     <string name="class_name_00">Statistics</string>
     <string name="class_name_01">Artifcial Intelligence</string>
     <string name="status_start">Hello Udacity</string>
+    <string name="credentials_sign_in">Sign In »</string>
 </resources>

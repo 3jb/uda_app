@@ -43,7 +43,7 @@ public class UserInterface
     @Override
     public View onCreateView(LayoutInflater inflater, 
 			      ViewGroup container, Bundle savedInstanceState) {
-      View v = inflater.inflate(R.layout.cred_req, container, false);
+      View v = inflater.inflate(R.layout.credential_request, container, false);
       Button b = (Button)v.findViewById(R.id.sign_in);
       b.setOnClickListener( new OnClickListener() {
 	      public void onClick(View v) {

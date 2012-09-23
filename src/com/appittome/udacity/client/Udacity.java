@@ -108,7 +108,8 @@ public class Udacity extends FragmentActivity implements
     super.onCreate(savedInstanceState);
     this.ui = new UdacityUserInterface();
     this.siCred = new UdacityCredentials();
-    try {
+    
+   try {
       this.uConn = new UdacityConnection(UDACITY_URL);
     } catch (MalformedURLException e){
       ui.showMessage("Malformed URL:: " + e.getMessage());
@@ -123,14 +124,16 @@ public class Udacity extends FragmentActivity implements
 
   public void promptForCredentials() {
     FragmentTransaction ft = getSupportFragmentManager().beginTransaction();
-    UserInterface.getCredentialsDialog().show(ft, CREDENTIALS_DIALOG);
+    DialogFragment cD = UserInterface.getCredentialsDialog();
+    cD.setStyle(DialogFragment.STYLE_NO_TITLE, 0);
+    cD.show(ft, CREDENTIALS_DIALOG);
   }
 
   public void onNewCredentials(String email, String pass) {
     siCred.setEmail(email);
     siCred.setPassword(pass);
     uConn.fetchNewCookie();
-    Log.w("Udacity.onNewCredentials()::","email:: "+email+" password:: "+pass);
+    Log.w("Udacity.onNewCredentials()::","email:: "+email+" password:: ");
     FragmentTransaction ft = getSupportFragmentManager().beginTransaction();
     DialogFragment prev = 
       (DialogFragment)getSupportFragmentManager().findFragmentByTag(CREDENTIALS_DIALOG);

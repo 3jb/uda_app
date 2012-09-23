@@ -74,8 +74,7 @@ public class SignInCredentials {
     } catch (JSONException e) {
       Log.w("SignInCredentials.toJSON()", e);
     } catch (NullCredentialsException e) {
-      Log.w("SignInCredentials.toJSON()", e);
-      throw new NullCredentialsException("Cannot Construct Credentials");
+      throw new NullCredentialsException(e.toString());
     }
     return retObj;
   }
