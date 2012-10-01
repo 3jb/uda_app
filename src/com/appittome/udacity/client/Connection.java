@@ -1,6 +1,7 @@
 package com.appittome.udacity.client;
 
 import android.app.Activity;
+import android.util.Log;
 import android.content.Context;
 import android.net.*;
 import android.os.AsyncTask;
@@ -8,17 +9,28 @@ import java.net.*;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.InputStreamReader;
+import java.io.BufferedReader;
 import java.io.BufferedOutputStream;
+import java.io.BufferedInputStream;
 import java.io.Reader;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
-import android.util.Log;
 import org.json.JSONObject;
 import org.json.JSONException;
 
+import org.apache.commons.io.IOUtils;
+
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class Connection
 {
+  public interface OnNewCsrfTokenListener
+  {
+    public void onNewCsrfToken(String token);
+  }
+  static final boolean DEBUG = true;
+  private static OnNewCsrfTokenListener cTokenListener;
   private static String AJAX_SPEC = "/ajax";
   private URL url;
 
@@ -32,6 +44,8 @@ public class Connection
   }
   protected void showMessage(String msg) {
   }
+  public void fetchCourseList() {
+  }
   protected JSONObject getJSONCredentials() {
     return new JSONObject();
   }
@@ -44,7 +58,17 @@ public class Connection
   private boolean loggedInto(String page) {
     return page.contains("Sign Out");
   }
-
+  private void parseCsrfToken(String page) {
+    String retString;
+    Pattern csrf_pattern = Pattern.compile("csrf_token = \\\".{60}\\\"");
+    Matcher csrf_matcher = csrf_pattern.matcher(page);
+    retString = csrf_matcher.find() ? csrf_matcher.group().substring(14,74) : null;//
+    if(DEBUG) Log.i("Connection.parseCsrfToken(String)",(retString== null ? "NULL" : retString));
+    if (cTokenListener != null && retString != null) cTokenListener.onNewCsrfToken(retString);
+  }
+  public void setCsrfTokenListener(OnNewCsrfTokenListener cTokenListener) {
+    this.cTokenListener = cTokenListener;
+  }
 
 //--- ASYNCHRONOUS TASKS ---//
   private class LoadWithCredentialsTask extends AsyncTask<URL, Integer, String>
@@ -61,14 +85,37 @@ public class Connection
       return result;
     }
     @Override
-    protected void onPostExecute(String result) {
-      if(!loggedInto(result)){
+    protected void onPostExecute(String page) {
+      //if(DEBUG) Log.i("Connection.LoadWithCredentialsTask::", page);
+      parseCsrfToken(page);
+      if(!loggedInto(page)){
 	fetchNewCookie();
       } else {
 	//TODO possible nasty loop here…
 	showMessage("Logged In");
 	//TODO grab class list 
+	fetchCourseList();
       }
+    }
+  }
+
+  protected class AsyncJSONTask extends AsyncTask<JSONObject, Integer, JSONObject>
+  {
+    @Override
+    protected JSONObject doInBackground(JSONObject... jsonArray) {
+      JSONObject retVal = null;
+      for (JSONObject json : jsonArray) { 
+	try{
+	  retVal = new JSONObject(sendJSON(json, new URL(url, AJAX_SPEC) ));
+	}catch (SocketTimeoutException e){
+	  if(DEBUG) Log.w("Udacity.Connection.AsyncJSONTask::",
+			  "Readtimeout - the server is slow");
+	}catch (Exception e){
+	  if(DEBUG) Log.w("Udacity.Connection.AsyncJSONTask::",e);
+	}
+      }
+      //TODO If you ever actaully post an array - the return won't work.
+      return retVal;
     }
   }
 
@@ -81,17 +128,17 @@ public class Connection
       try{
 	retVal = sendJSON(getJSONCredentials(), new URL(urls[0], AJAX_SPEC) );
       }catch (SocketTimeoutException e){
-	Log.w("Udacity.Connection.FetchNewCookieTask::",
-		"Readtimeout - the server is slow");
+	if(DEBUG) Log.w("Udacity.Connection.FetchNewCookieTask::",
+			"Readtimeout - the server is slow");
       } catch (IOException e) {
 	//TODO create notification / action
-	Log.w("Udacity.Connection.FetchNewCookieTask::",e);
+	if(DEBUG) Log.w("Udacity.Connection.FetchNewCookieTask::",e);
       } catch (NullPointerException e){
 	retVal = MISSING_CREDENTIALS;
       }catch (Exception e){
-	Log.w("Udacity.Connection.FetchNewCookieTask::",e);
+	if(DEBUG) Log.w("Udacity.Connection.FetchNewCookieTask::",e);
       }
-      Log.w("Udacity.Connection.FetchNewCookieTask ->", retVal);
+      //if(DEBUG) Log.w("Udacity.Connection.FetchNewCookieTask ->", retVal);
       return retVal;
     }
     @Override
@@ -100,15 +147,17 @@ public class Connection
 	try {
 	  JSONObject JSONResp = new JSONObject(result);
 	  try {
-	    String reply = JSONResp.getString("win");
-	    if( reply.compareTo("loaded cookie") == 0 ) {
+	    JSONObject payload = JSONResp.getJSONObject("payload");
+	    if( payload.getBoolean("reload") ) {
 	      checkCredentials();
 	    }
 	  } catch (JSONException e) {
-	    showMessage(JSONResp.toString(2));
+	    if(DEBUG) Log.w("Udacity.Connection.FetchNewCookieTask - unable to build JSONObject", 
+			      JSONResp.toString(2) + e.toString());
 	  }
 	} catch (JSONException e) {
-	  showMessage("Invalid JSON returned::" + e);
+	  if(DEBUG) Log.w("Udacity.Connection.FetchNewCookieTask - Invalid JSON response", 
+			    e.toString());
 	}
       }
     }
@@ -127,21 +176,10 @@ public class Connection
     conn.setRequestProperty("Accept", "*/*");
     
     conn.connect();
-    try {
-      len = Integer.parseInt(conn.getHeaderField("Content-Length"));
-    } catch (NumberFormatException e) {
-      len = 500;
-    }
-    try {
-      is = conn.getInputStream();
-      retString = readIt(is,len);
-    } finally {
-      if (is !=null) 
-	is.close();
-      conn.disconnect();
-    }
-    return retString;
+    
+    return readAndCloseConnection(conn);
   }
+
   private String sendJSON(JSONObject jObj, URL url) throws IOException 
   {
     String message = jObj.toString();
@@ -168,32 +206,22 @@ public class Connection
     os.flush();
     os.close();
 
-    //int response = conn.getResponseCode();
-    //Log.i("Udacity::AsyncNetwork:", "Response is: " + response);
-    try {
-      len = Integer.parseInt(conn.getHeaderField("Content-Length"));
-    } catch (NumberFormatException e) {
-      len = 50;
-    }
-    try {
-      is = conn.getInputStream();
-      retString = readIt(is,len);
-    } finally {
-      if (is !=null) 
-	is.close();
-      conn.disconnect();
-    }
-      
-    return retString;
+    return readAndCloseConnection(conn);
   }
 
-  public String readIt(InputStream stream, int len) throws IOException, 
-					       UnsupportedEncodingException {
-    Reader reader = null;
-    reader = new InputStreamReader(stream, "UTF-8");
-    char[] buffer = new char[len];
-    reader.read(buffer);
-    return new String(buffer);
+//-- CONNECTION UTILITIES --//
+  private String readAndCloseConnection(HttpURLConnection c) {
+    String retString = "";
+    try {
+      InputStream is = c.getInputStream();
+      retString = IOUtils.toString(is);
+      if(is != null) is.close();
+    }catch(Exception e) {
+      if(DEBUG) Log.w("Udacity.Connection.grabPage(url) - input stream exception", e.toString());
+    } finally {
+      c.disconnect();
+    }
+    return retString;
   }
 
 }

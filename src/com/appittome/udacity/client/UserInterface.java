@@ -4,9 +4,13 @@ import android.app.Activity;
 import android.os.Bundle;
 
 import android.support.v4.app.DialogFragment;
+import android.support.v4.app.ListFragment;
 import android.support.v4.app.Fragment;
+import android.support.v4.app.FragmentManager;
 import android.support.v4.app.FragmentActivity;
 import android.support.v4.app.FragmentTransaction;
+import android.support.v4.app.FragmentStatePagerAdapter;
+
 
 import android.view.LayoutInflater;
 import android.view.ViewGroup;
@@ -23,9 +27,12 @@ import android.util.Log;
 import android.widget.ListView;
 import android.widget.ArrayAdapter;
 
+import org.json.JSONObject;
+
 public class UserInterface 
 {
-
+  private static final int SWIPE_DEPTH = 3;
+  private static final boolean DEBUG = true;
   public static class CredentialsDialog extends DialogFragment {
     private static OnNewCredentialsListener cL;
     private static String email;
@@ -44,6 +51,8 @@ public class UserInterface
     public View onCreateView(LayoutInflater inflater, 
 			      ViewGroup container, Bundle savedInstanceState) {
       View v = inflater.inflate(R.layout.credential_request, container, false);
+      if(DEBUG)((EditText)v.findViewById(R.id.email)).setText("ejbrunner@gmail.com");
+      //if(DEBUG)((EditText)v.findViewById(R.id.pass)).setText("");
       Button b = (Button)v.findViewById(R.id.sign_in);
       b.setOnClickListener( new OnClickListener() {
 	      public void onClick(View v) {
@@ -72,44 +81,62 @@ public class UserInterface
 
   public void showMessage(String msg) {
   }
-
-    /*ListView listV = (ListView) activity.findViewById(R.id.list);
-
-    String[] values = new String[] {"one", "two"};
-
-    ArrayAdapter<String> adapter = new ArrayAdapter<String>(activity,
-     R.layout.classes, R.id.class_name, values);
-
-    listV.setAdapter(adapter); 
-/*
-    Button signInBut = (Button)activity.findViewById(R.id.sign_in);
-    signInBut.setOnClickListener( new OnClickListener() {
-      public void onClick(View v) {
-	showMessage("CLICK");
-      }
-    });*/
-
-
-
-/*  public JSONObject collectForSubmission() {
-    JSONObject retObj = new JSONObject();
-    JSONObject data = new JSONObject();
-    try {
-      //User relavant attibutes
-      data.put("email",
-	       ((EditText)activity.findViewById(R.id.email)).getText().toString());
-      data.put("password", 
-	       ((EditText)activity.findViewById(R.id.pass)).getText().toString());
-      retObj.put("data", data);
-      //Client relavant attibutes
-      retObj.put("method","account.sign_in");
-      retObj.put("version","dacity-45");
-      retObj.put("csrf_token","123123");
-    } catch (JSONException e) {
-      showMessage("Difficulty assembling JSON object");
-      Log.w("collectForSubmission()", e);
+/**Swipe view**/
+  public static class SwipeAdapter extends FragmentStatePagerAdapter {
+    public SwipeAdapter(FragmentManager fm) {
+      super(fm);
     }
-    return retObj;
+    @Override
+    public int getCount() {
+      return SWIPE_DEPTH;
+    }
+
+    @Override public Fragment getItem(int position) {
+      return ArrayListFragment.newInstance(position);
+    }
   }
-*/
+
+  public static class ArrayListFragment extends ListFragment {
+    
+    private String[] values;
+
+    static ArrayListFragment newInstance(int num) {
+      ArrayListFragment f = new ArrayListFragment();
+
+      Bundle args = new Bundle();
+      args.putInt("num", num);
+      f.setArguments(args);
+
+      return f;
+    }
+
+    @Override
+    public void onCreate(Bundle savedInstanceState) {
+      super.onCreate(savedInstanceState);
+      int num = getArguments() != null ? getArguments().getInt("num") : 1;
+      if (num%2 != 0) {
+	values = new String[] {};
+      } else {
+	values = new String[] {"one", "two"};
+      }
+    }
+
+    public View onCreateView(LayoutInflater inflater, ViewGroup container,
+			      Bundle savedInstanceState) {
+      return inflater.inflate(R.layout.fragment_pager, container, false);
+    }
+
+    @Override
+    public void onActivityCreated(Bundle savedInstanceState) {
+      super.onActivityCreated(savedInstanceState);
+      setListAdapter( new CourseArrayAdapter(getActivity(), new JSONObject[1]));
+		//new ArrayAdapter<String>(getActivity(),
+                          //R.layout.fragment_class_item, 
+			  //R.id.class_name, values));
+    }
+    @Override
+    public void onListItemClick(ListView l, View v, int position, long id) {
+      Log.i("FragmentList", "Item clicked: " + id);
+    }
+  }
 }

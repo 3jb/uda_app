@@ -9,8 +9,8 @@ public class SignInCredentials {
   protected String email;
   protected String password;
   protected String csrf_token;
-  private static final String METHOD = "account.sign-in";
-  private static final String VERSION = "dacity-45";
+  private static final String METHOD = "account.sign_in";
+  private static final String VERSION = "dacity-1";
 
   public class NullCredentialsException extends NullPointerException {
     public NullCredentialsException(String msg) {
