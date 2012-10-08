@@ -58,10 +58,10 @@ public class SignInCredentials {
     return this.csrf_token;
   }
 
-  public JSONObject toJSON() {
+  public JSONObject toJSON() throws NullCredentialsException {
     JSONObject retObj = new JSONObject();
     JSONObject data = new JSONObject();
-    Log.w("SignInCredentials.toJSON", "begin assembling JSON…");
+    Log.w("Udacity.SignInCredentials.toJSON", "begin assembling JSON…");
     try {
       //User relavant attibutes
       data.put("email", getEmail());
@@ -72,7 +72,7 @@ public class SignInCredentials {
       retObj.put("version", VERSION);
       retObj.put("csrf_token", getCsrf_token());
     } catch (JSONException e) {
-      Log.w("SignInCredentials.toJSON()", e);
+      Log.w("Udacity.SignInCredentials.toJSON()", e);
     } catch (NullCredentialsException e) {
       throw new NullCredentialsException(e.toString());
     }

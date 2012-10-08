@@ -24,19 +24,22 @@ import org.json.JSONObject;
 import org.json.JSONException;
 import org.json.JSONArray;
 
-
 public class Udacity extends FragmentActivity implements 
 			      Connection.OnNewCsrfTokenListener,
 			      UserInterface.CredentialsDialog.OnNewCredentialsListener
 {
   private static final String CREDENTIALS_DIALOG = "00";
+  private static final boolean DEBUG = true;
 
   private static UserInterface ui;
   private static SignInCredentials siCred;
+  private static UdacityCourseList course_list;
   private static Connection uConn;
+  private static String current_token;
+ 
+  //Test and "production"…
   //private static final String UDACITY_URL = "http://www.udacity.com";
   private static final String UDACITY_URL = "http://192.168.1.8:3000";
-  private static String current_token;
   
   private class UdacityCredentials extends SignInCredentials {
     public static final String NULL_EMAIL_MSG = "email";
@@ -47,7 +50,6 @@ public class Udacity extends FragmentActivity implements
 
       @Override
       public String getEmail() {
-	/*ui.showMessage("UdacityCredentials.getEmail():: " + this.email);*/
 	if (this.email == null) {
 	  promptForCredentials();
 	  throw new NullCredentialsException(NULL_EMAIL_MSG);
@@ -56,7 +58,6 @@ public class Udacity extends FragmentActivity implements
       }
       @Override 
       protected String getPassword() {
-	/*ui.showMessage("UdacityCredentials.getPassword():: " + this.password);*/
 	if (this.password == null) {
 	  promptForCredentials();
 	  throw new NullCredentialsException(NULL_PASSWORD_MSG);
@@ -70,11 +71,12 @@ public class Udacity extends FragmentActivity implements
   }
 
   private class UdacityConnection extends Connection {
+    protected final URL url = new URL(UDACITY_URL);
     public UdacityConnection(String url) throws MalformedURLException {
       super(new URL(url));
       if (!connectionAvailable()) 
 	//TODO implement intent
-	showMessage("No WAN connection found.");
+	if(DEBUG) Log.w("Udacity.UdacityConnection()", "No WAN connection found.");
     }
    
     @Override
@@ -84,60 +86,43 @@ public class Udacity extends FragmentActivity implements
       NetworkInfo netfo = connMgr.getActiveNetworkInfo();
       return ( netfo != null && netfo.isConnected() );
     }
-    @Override 
-    protected void showMessage(String msg) {
-	ui.showMessage(msg);
-	//Toast.makeText(getApplicationContext(), msg, Toast.LENGTH_SHORT).show();
-    }
     @Override
     protected JSONObject getJSONCredentials() {
       return siCred.toJSON();
     }
     
-    public void fetchCourseList() {
-      JSONObject data = new JSONObject();
-      JSONObject payload = new JSONObject();
-      try {
-	payload.put("data", data);
-	payload.put("method","account.courses_of_interest");
-	payload.put("version","dacity-1");
-      } catch (JSONException e){
-	Log.w("Udacity.UdacityConnection.fetchCourseList()", e);
-      }
-
-      new AsyncJSONTask() {
-	@Override
-	protected void onPostExecute(JSONObject json) {
-	  try{
-	    Log.i("UdacityConnection.fetchCourseList", json.toString());
-	    JSONObject payload = json.getJSONObject("payload");
-	    JSONArray jarray = payload.getJSONArray("courses");
-	    JSONObject[] array = new JSONObject[jarray.length()];
-	    for(int i=0; i < jarray.length(); i++){
-	      array[i] = jarray.getJSONObject(i);
-	    }
-	  } catch (JSONException e) {
-	      Log.w("Udacity.UdacityConnection.fetchCourseList()",
-		      "Server did not return valid JSON::" + e);
-	  }
-
-	}
-      }.execute(payload);
-    }	
   }
 
   private class UdacityUserInterface extends UserInterface 
+				     implements UdacityCourseList.OnCourseListChangeListener
   {
+    protected SwipeAdapter udacityAdapter;
+
     public UdacityUserInterface() {
       super();
       setContentView(R.layout.udacity);
-      /*SwipeAdapter udacityAdapter = new SwipeAdapter(getSupportFragmentManager());
-      ViewPager udacityPager = (ViewPager)findViewById(R.id.pager);
-      udacityPager.setAdapter(udacityAdapter);*/
     }
     @Override
     public void showMessage(String msg) {
 	Toast.makeText(getApplicationContext(), msg, Toast.LENGTH_SHORT).show();
+    }
+    public void onCourseListChange() {
+      if(DEBUG) Log.i("Udacity.UdacityUserInterface.onCourseChange", 
+		      "course_list == nul? " + (course_list == null ? "true":"false"));
+      if(udacityAdapter == null) {
+	SwipeAdapter tmpAdapter = 
+	    new SwipeAdapter(getSupportFragmentManager(), course_list);
+	ViewPager pager = (ViewPager)findViewById(R.id.pager);
+	//apparently the query can beat the UI coming up, so make sure  this is 
+	//not null so check before trying to set pager.
+	if(pager != null) {
+	  pager.setAdapter(tmpAdapter);
+	  udacityAdapter = tmpAdapter;
+	}
+
+      } else {
+	udacityAdapter.notifyDataSetChanged();
+      }
     }
   }
 
@@ -148,10 +133,14 @@ public class Udacity extends FragmentActivity implements
     super.onCreate(savedInstanceState);
     this.ui = new UdacityUserInterface();
     this.siCred = new UdacityCredentials();
-    
+    this.course_list = 
+	  new UdacityCourseList((UdacityCourseList.OnCourseListChangeListener)ui);
+
    try {
       this.uConn = new UdacityConnection(UDACITY_URL);
       this.uConn.setCsrfTokenListener(this);
+      this.uConn.addOnConnectionReadyListener(
+			      (Connection.OnConnectionReadyListener)course_list);
     } catch (MalformedURLException e){
       Log.w("Udacity.Udacity.onCreate()", "Malformed URL:: " + e);
     }
@@ -160,6 +149,7 @@ public class Udacity extends FragmentActivity implements
   public void onResume()
   {
     super.onResume();
+    //TODO this refreshes far too often…
     uConn.checkCredentials();
   }
 

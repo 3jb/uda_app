@@ -1,20 +1,19 @@
 package com.appittome.udacity.client;
 
-import android.app.Activity;
 import android.util.Log;
-import android.content.Context;
-import android.net.*;
 import android.os.AsyncTask;
-import java.net.*;
-import java.io.InputStream;
+
+import java.net.URL;
+import java.net.HttpURLConnection;
+import java.net.CookieHandler;
+import java.net.CookieManager;
+import java.net.SocketTimeoutException;
+import java.net.MalformedURLException;
+
 import java.io.OutputStream;
-import java.io.InputStreamReader;
-import java.io.BufferedReader;
 import java.io.BufferedOutputStream;
-import java.io.BufferedInputStream;
-import java.io.Reader;
 import java.io.IOException;
-import java.io.UnsupportedEncodingException;
+
 import org.json.JSONObject;
 import org.json.JSONException;
 
@@ -22,6 +21,8 @@ import org.apache.commons.io.IOUtils;
 
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.HashSet;
+import java.util.Iterator;
 
 public class Connection
 {
@@ -31,82 +32,139 @@ public class Connection
   }
   static final boolean DEBUG = true;
   private static OnNewCsrfTokenListener cTokenListener;
+  private static HashSet<OnConnectionReadyListener> connectionReadyListeners = 
+					      new HashSet<OnConnectionReadyListener>();
   private static String AJAX_SPEC = "/ajax";
-  private URL url;
+  private boolean ready;
+  protected static URL url;
+
+  public Connection() {
+    this.url = null;
+    this.ready = false;
+  }
 
   public Connection(URL url) {
     this.url = url; 
     CookieHandler.setDefault(new CookieManager());
   }
 
+//--- OVERRIDE METHODS ----//
   protected boolean connectionAvailable() {
     return false;
   }
-  protected void showMessage(String msg) {
+  public boolean isReady() {
+    return ready;
   }
   public void fetchCourseList() {
   }
   protected JSONObject getJSONCredentials() {
     return new JSONObject();
   }
+
+  public boolean addOnConnectionReadyListener(OnConnectionReadyListener L) {
+    return this.connectionReadyListeners.add(L);
+  }
+
+  public void notifyConnectionReadyListeners() {
+    Iterator<OnConnectionReadyListener> iter = connectionReadyListeners.iterator();
+    while (iter.hasNext()) {
+      iter.next().onConnectionReady(this);
+    }
+    ready = true;
+  }
+
+  public interface OnConnectionReadyListener {
+    public void onConnectionReady(Connection c);
+  }
+
+//---- CREDENTIAL BOUNCE ---//
   public void checkCredentials() {
-    new LoadWithCredentialsTask().execute(url);
+    new GrabPageTask(){
+      @Override
+      protected void onPostExecute(HttpURLResponse resp) {
+	String page = resp.getResponse();
+	parseCsrfToken(page);
+	if(!loggedInto(page)){
+	  fetchNewCookie();
+	} else {
+	  //TODO possible nasty loop here…
+	  if(DEBUG) Log.i("Udacity.Connection.LoadWithCredentialsTask", "Logged In");
+	  notifyConnectionReadyListeners();
+	  //fetchCourseList();
+	}
+      }
+    }.execute((String)null);
   }
   public void fetchNewCookie() {
-    new FetchNewCookieTask().execute(url);
+    try {
+      new AsyncJSONTask() {
+	@Override
+	protected void onPostExecute(JSONObject JSONResp) {
+	  try {
+	    JSONObject payload = JSONResp.getJSONObject("payload");
+	    if( payload.getBoolean("reload") ) {
+	      checkCredentials();
+	    }
+	  } catch (JSONException e) {
+	    if(DEBUG) 
+	      Log.w("Udacity.Connection.FetchNewCookieTask","Invalid JSON response" + e);
+	  }
+	}
+      }.execute(getJSONCredentials());
+    } catch (NullPointerException e){
+      //Expect to catch NullCredentialsException here - thus killing this, asking 
+      //for new credentials, and then re-spawning the task after the dialog is closed
+      if(DEBUG) Log.w("Udacity.Connection.fetchNewCookie",e.toString());
+    }
   }
-  private boolean loggedInto(String page) {
+
+//--- misc  utilities ---//
+  protected boolean loggedInto(String page) {
     return page.contains("Sign Out");
   }
+
   private void parseCsrfToken(String page) {
     String retString;
     Pattern csrf_pattern = Pattern.compile("csrf_token = \\\".{60}\\\"");
     Matcher csrf_matcher = csrf_pattern.matcher(page);
     retString = csrf_matcher.find() ? csrf_matcher.group().substring(14,74) : null;//
-    if(DEBUG) Log.i("Connection.parseCsrfToken(String)",(retString== null ? "NULL" : retString));
-    if (cTokenListener != null && retString != null) cTokenListener.onNewCsrfToken(retString);
+    if(DEBUG) Log.i("Udacity.Connection.parseCsrfToken(String)",
+		(retString== null ? "NULL" : retString));
+    if (cTokenListener != null && retString != null) 
+      cTokenListener.onNewCsrfToken(retString);
   }
+
   public void setCsrfTokenListener(OnNewCsrfTokenListener cTokenListener) {
     this.cTokenListener = cTokenListener;
   }
 
 //--- ASYNCHRONOUS TASKS ---//
-  private class LoadWithCredentialsTask extends AsyncTask<URL, Integer, String>
+  public class GrabPageTask extends AsyncTask<String, Integer, HttpURLResponse>
   {
     @Override
-    protected String doInBackground(URL... urls){
-      String result ="";
+    protected HttpURLResponse doInBackground(String... specs){
+      HttpURLResponse resp = null;
+      URL queryURL = url;
       try {
-        result = grabPage(urls[0]);
+	if(specs[0] != null) queryURL = new URL(url, specs[0]);
+        resp = grabPage(queryURL);
+      } catch (MalformedURLException e) {
+	if(DEBUG) Log.w("Udacity.Connection.grapPageTask", "invalid URL: "+e);
       } catch (IOException e) {
-	//TODO create notification / action
+	if(DEBUG) Log.w("Udacity.Connection.grapPageTask", "can't fetch page: "+e);
       }
-
-      return result;
-    }
-    @Override
-    protected void onPostExecute(String page) {
-      //if(DEBUG) Log.i("Connection.LoadWithCredentialsTask::", page);
-      parseCsrfToken(page);
-      if(!loggedInto(page)){
-	fetchNewCookie();
-      } else {
-	//TODO possible nasty loop here…
-	showMessage("Logged In");
-	//TODO grab class list 
-	fetchCourseList();
-      }
+      return resp;
     }
   }
 
-  protected class AsyncJSONTask extends AsyncTask<JSONObject, Integer, JSONObject>
+  public class AsyncJSONTask extends AsyncTask<JSONObject, Integer, JSONObject>
   {
     @Override
     protected JSONObject doInBackground(JSONObject... jsonArray) {
       JSONObject retVal = null;
       for (JSONObject json : jsonArray) { 
 	try{
-	  retVal = new JSONObject(sendJSON(json, new URL(url, AJAX_SPEC) ));
+	  retVal = new JSONObject(sendJSON(json, new URL(url, AJAX_SPEC) ).getResponse());
 	}catch (SocketTimeoutException e){
 	  if(DEBUG) Log.w("Udacity.Connection.AsyncJSONTask::",
 			  "Readtimeout - the server is slow");
@@ -119,73 +177,30 @@ public class Connection
     }
   }
 
-  private class FetchNewCookieTask extends AsyncTask<URL, Integer, String>
-  {
-    public static final String MISSING_CREDENTIALS = "001";
-    @Override
-    protected String doInBackground(URL... urls) {
-      String retVal = "";
-      try{
-	retVal = sendJSON(getJSONCredentials(), new URL(urls[0], AJAX_SPEC) );
-      }catch (SocketTimeoutException e){
-	if(DEBUG) Log.w("Udacity.Connection.FetchNewCookieTask::",
-			"Readtimeout - the server is slow");
-      } catch (IOException e) {
-	//TODO create notification / action
-	if(DEBUG) Log.w("Udacity.Connection.FetchNewCookieTask::",e);
-      } catch (NullPointerException e){
-	retVal = MISSING_CREDENTIALS;
-      }catch (Exception e){
-	if(DEBUG) Log.w("Udacity.Connection.FetchNewCookieTask::",e);
-      }
-      //if(DEBUG) Log.w("Udacity.Connection.FetchNewCookieTask ->", retVal);
-      return retVal;
-    }
-    @Override
-    protected void onPostExecute(String result) {
-      if (!result.equals(MISSING_CREDENTIALS)){
-	try {
-	  JSONObject JSONResp = new JSONObject(result);
-	  try {
-	    JSONObject payload = JSONResp.getJSONObject("payload");
-	    if( payload.getBoolean("reload") ) {
-	      checkCredentials();
-	    }
-	  } catch (JSONException e) {
-	    if(DEBUG) Log.w("Udacity.Connection.FetchNewCookieTask - unable to build JSONObject", 
-			      JSONResp.toString(2) + e.toString());
-	  }
-	} catch (JSONException e) {
-	  if(DEBUG) Log.w("Udacity.Connection.FetchNewCookieTask - Invalid JSON response", 
-			    e.toString());
-	}
-      }
-    }
-  }
 //---CONNECTION TYPES---//
-  private String grabPage(URL url) throws IOException
+  private HttpURLResponse grabPage(URL url) throws IOException
   {
-    InputStream is = null;
-    String retString = "";
-    int len = 0;
+    HttpURLResponse resp = null;
 
     HttpURLConnection conn = (HttpURLConnection) url.openConnection();
     conn.setReadTimeout( 10000 /*milliseconds*/ );
     conn.setConnectTimeout( 15000 /* milliseconds */ );
     conn.setDoInput(true);
     conn.setRequestProperty("Accept", "*/*");
-    
+    conn.setFollowRedirects(false);
+
     conn.connect();
     
-    return readAndCloseConnection(conn);
+    resp = new HttpURLResponse(conn);
+    conn.disconnect();
+
+    return resp;
   }
 
-  private String sendJSON(JSONObject jObj, URL url) throws IOException 
+  private HttpURLResponse sendJSON(JSONObject jObj, URL url) throws IOException 
   {
     String message = jObj.toString();
-    String retString = "";
-    InputStream is = null;
-    int len = 0;
+    HttpURLResponse resp = null;
 
     HttpURLConnection conn = (HttpURLConnection) url.openConnection();
     conn.setReadTimeout( 15*1000 /*1000 milliseconds = 1 sec */ );
@@ -199,6 +214,8 @@ public class Connection
 			    "application/json;charset=utf-8");
     conn.setRequestProperty("X-Requested-With", "XMLHttpRequest");
     
+    if(DEBUG) Log.i("Udacity.Connection.sendJSON","URL:"+url);
+    if(DEBUG) Log.i("Udacity.Connection.sendJSON","JSON:"+message);
     //Start the querry
     conn.connect();
     OutputStream os = new BufferedOutputStream(conn.getOutputStream());
@@ -206,22 +223,8 @@ public class Connection
     os.flush();
     os.close();
 
-    return readAndCloseConnection(conn);
+    resp = new HttpURLResponse(conn);
+    conn.disconnect();
+    return resp;
   }
-
-//-- CONNECTION UTILITIES --//
-  private String readAndCloseConnection(HttpURLConnection c) {
-    String retString = "";
-    try {
-      InputStream is = c.getInputStream();
-      retString = IOUtils.toString(is);
-      if(is != null) is.close();
-    }catch(Exception e) {
-      if(DEBUG) Log.w("Udacity.Connection.grabPage(url) - input stream exception", e.toString());
-    } finally {
-      c.disconnect();
-    }
-    return retString;
-  }
-
 }
