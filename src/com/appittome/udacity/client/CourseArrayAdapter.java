@@ -41,23 +41,24 @@ public class CourseArrayAdapter extends ArrayAdapter<UdacityCourseList.Course> {
     //TODO not a big fan of this - but… it'll work for now
     if (convertView == null) {
       view = mInflater.inflate(COURSE_ITEM_LAYOUT, parent, false);
+      TextView id = (TextView) view.findViewById(ID_VIEW);
+      TextView name = (TextView) view.findViewById(NAME_VIEW);
+      ImageView icon = (ImageView) view.findViewById(ICON_VIEW);
+      UdacityCourseList.Course course = getItem(position);
+      try { 
+	id.setText(course.getId());
+	name.setText(course.getName());
+	InputStream is = (InputStream)(new URL(course.getIconURL()).getContent());
+	icon.setImageDrawable(Drawable.createFromStream(is, "src"));
+      }catch (IOException e) {
+	//TODO sub in default image…
+	Log.w("Udacity.CourseArrayAdapter.getView","Exception "+e); 
+      } catch (Exception e) {
+	Log.w("Udacity.CourseArrayAdapter.getView", 
+		"Course seems to be missing fields::" + e);
+      }
     } else {
       view = convertView;
-    }
-    TextView name = (TextView) view.findViewById(NAME_VIEW);
-    TextView id = (TextView) view.findViewById(ID_VIEW);
-    ImageView icon = (ImageView) view.findViewById(ICON_VIEW);
-    UdacityCourseList.Course course = getItem(position);
-    try { 
-      InputStream is = (InputStream)(new URL(course.getIconURL()).getContent());
-      icon.setImageDrawable(Drawable.createFromStream(is, "src"));
-      id.setText(course.getId());
-      name.setText(course.getName());
-    }catch (IOException e) {
-      //TODO sub in default image…
-    } catch (Exception e) {
-      Log.w("Udacity.CourseArrayAdapter.getView", 
-	      "Course seems to be missing fields::" + e);
     }
     return view;
   }

@@ -39,7 +39,7 @@ public class Udacity extends FragmentActivity implements
  
   //Test and "production"…
   //private static final String UDACITY_URL = "http://www.udacity.com";
-  private static final String UDACITY_URL = "http://192.168.1.8:3000";
+  private static final String UDACITY_URL = "http://10.0.0.3:3000";
   
   private class UdacityCredentials extends SignInCredentials {
     public static final String NULL_EMAIL_MSG = "email";

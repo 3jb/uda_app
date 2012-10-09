@@ -4,6 +4,7 @@ import android.util.Log;
 import android.os.AsyncTask;
 
 import java.net.URL;
+import java.net.URLEncoder;
 import java.net.HttpURLConnection;
 import java.net.CookieHandler;
 import java.net.CookieManager;
@@ -97,7 +98,7 @@ public class Connection
   }
   public void fetchNewCookie() {
     try {
-      new AsyncJSONTask() {
+      new AsyncJSONPostTask() {
 	@Override
 	protected void onPostExecute(JSONObject JSONResp) {
 	  try {
@@ -157,19 +158,19 @@ public class Connection
     }
   }
 
-  public class AsyncJSONTask extends AsyncTask<JSONObject, Integer, JSONObject>
+  public class AsyncJSONPostTask extends AsyncTask<JSONObject, Integer, JSONObject>
   {
     @Override
     protected JSONObject doInBackground(JSONObject... jsonArray) {
       JSONObject retVal = null;
       for (JSONObject json : jsonArray) { 
 	try{
-	  retVal = new JSONObject(sendJSON(json, new URL(url, AJAX_SPEC) ).getResponse());
+	  retVal = new JSONObject(postJSON(json, url ).getResponse());
 	}catch (SocketTimeoutException e){
-	  if(DEBUG) Log.w("Udacity.Connection.AsyncJSONTask::",
+	  if(DEBUG) Log.w("Udacity.Connection.AsyncJSONPostTask::",
 			  "Readtimeout - the server is slow");
 	}catch (Exception e){
-	  if(DEBUG) Log.w("Udacity.Connection.AsyncJSONTask::",e);
+	  if(DEBUG) Log.w("Udacity.Connection.AsyncJSONPostTask::",e);
 	}
       }
       //TODO If you ever actaully post an array - the return won't work.
@@ -177,17 +178,36 @@ public class Connection
     }
   }
 
+  public class AsyncJSONGetTask extends AsyncTask<JSONObject, Integer, JSONObject>
+  {
+    @Override
+    protected JSONObject doInBackground(JSONObject... jsonArray) {
+      JSONObject retVal = null;
+      for (JSONObject json : jsonArray) { 
+	try{
+	  retVal = new JSONObject(getJSON(json, url ).getResponse());
+	}catch (SocketTimeoutException e){
+	  if(DEBUG) Log.w("Udacity.Connection.AsyncJSONGetTask::",
+			  "Readtimeout - the server is slow");
+	}catch (Exception e){
+	  if(DEBUG) Log.w("Udacity.Connection.AsyncJSONGetTask::",e);
+	}
+      }
+      //TODO If you ever actaully post an array - the return won't work.
+      return retVal;
+    }
+  }
+
+
 //---CONNECTION TYPES---//
   private HttpURLResponse grabPage(URL url) throws IOException
   {
     HttpURLResponse resp = null;
 
     HttpURLConnection conn = (HttpURLConnection) url.openConnection();
-    conn.setReadTimeout( 10000 /*milliseconds*/ );
-    conn.setConnectTimeout( 15000 /* milliseconds */ );
+    setConnectionTimeouts(conn);
     conn.setDoInput(true);
     conn.setRequestProperty("Accept", "*/*");
-    conn.setFollowRedirects(false);
 
     conn.connect();
     
@@ -197,25 +217,45 @@ public class Connection
     return resp;
   }
 
-  private HttpURLResponse sendJSON(JSONObject jObj, URL url) throws IOException 
+  private HttpURLResponse getJSON(JSONObject jObj, URL mUrl) throws IOException
+  {
+    //going to fake-parse the message.  Udacity has a strange way of accepting
+    //JSON parameters to a GET request:
+    // GET /ajax?{%22data%22:{%22path%22:%22Course/cs313/CourseRev/1%22}…
+    String message = jObj.toString().replace("\"", "%22").replace("\\", "");
+    HttpURLResponse resp = null;
+    
+    URL qUrl = new URL(mUrl, AJAX_SPEC+"?"+message);
+    HttpURLConnection conn = (HttpURLConnection) qUrl.openConnection();
+
+    setJSONConnection(conn);
+    setConnectionTimeouts(conn);
+
+    if(DEBUG) Log.i("Udacity.Connection.getJSON","URL:"+qUrl);
+    //Start the querry
+    conn.connect();
+
+    resp = new HttpURLResponse(conn);
+    conn.disconnect();
+    return resp;
+  }
+
+  private HttpURLResponse postJSON(JSONObject jObj, URL mUrl) throws IOException 
   {
     String message = jObj.toString();
     HttpURLResponse resp = null;
 
-    HttpURLConnection conn = (HttpURLConnection) url.openConnection();
-    conn.setReadTimeout( 15*1000 /*1000 milliseconds = 1 sec */ );
-    conn.setConnectTimeout( 15000 /* milliseconds */ );
-    conn.setRequestMethod("POST");
-    conn.setDoInput(true);
-    conn.setDoOutput(true);
+    URL qUrl = new URL(mUrl, AJAX_SPEC);
+    HttpURLConnection conn = (HttpURLConnection) qUrl.openConnection();
+
+    setJSONConnection(conn);
+    setConnectionTimeouts(conn);
+    //POST
     conn.setFixedLengthStreamingMode(message.getBytes().length);
-    conn.setRequestProperty("Accept", "*/*");
-    conn.setRequestProperty("Content-Type", 
-			    "application/json;charset=utf-8");
-    conn.setRequestProperty("X-Requested-With", "XMLHttpRequest");
-    
-    if(DEBUG) Log.i("Udacity.Connection.sendJSON","URL:"+url);
-    if(DEBUG) Log.i("Udacity.Connection.sendJSON","JSON:"+message);
+    conn.setDoOutput(true);
+   
+    if(DEBUG) Log.i("Udacity.Connection.postJSON","URL:"+qUrl);
+    if(DEBUG) Log.i("Udacity.Connection.postJSON","JSON:"+message);
     //Start the querry
     conn.connect();
     OutputStream os = new BufferedOutputStream(conn.getOutputStream());
@@ -226,5 +266,20 @@ public class Connection
     resp = new HttpURLResponse(conn);
     conn.disconnect();
     return resp;
+  }
+
+  private HttpURLConnection setConnectionTimeouts(HttpURLConnection c) {
+    c.setReadTimeout( 15*1000 /*1000 milliseconds = 1 sec */ );
+    c.setConnectTimeout( 15000 /* milliseconds */ );
+    return c;
+  }
+  private HttpURLConnection setJSONConnection(HttpURLConnection c) {
+    c.setDoInput(true);
+    c.setRequestProperty("Accept", "*/*");
+    c.setRequestProperty("Content-Type", 
+			    "application/json;charset=utf-8");
+    c.setRequestProperty("X-Requested-With", "XMLHttpRequest");
+    c.setFollowRedirects(false);
+    return c;
   }
 }

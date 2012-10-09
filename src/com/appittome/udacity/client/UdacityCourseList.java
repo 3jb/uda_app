@@ -43,9 +43,10 @@ public class UdacityCourseList extends LinkedList<UdacityCourseList.Course>
   }
 
   public void addAll(JSONArray jarray) throws JSONException{
-    for(int i=0; i < jarray.length(); i++){
+    this.add(new Course(jarray.getJSONObject(0)));
+    /*for(int i=0; i < jarray.length(); i++){
       this.add(new Course(jarray.getJSONObject(i)));
-    }
+    }*/
   }
 
   public interface OnCourseListChangeListener {
@@ -85,7 +86,7 @@ public class UdacityCourseList extends LinkedList<UdacityCourseList.Course>
       Log.w("Udacity.UdacityConnection.fetchCourseList()", e);
     }
 
-    udacityConn.new AsyncJSONTask() {
+    udacityConn.new AsyncJSONGetTask() {
       @Override
       protected void onPostExecute(JSONObject json) {
 	try{
@@ -170,14 +171,21 @@ public class UdacityCourseList extends LinkedList<UdacityCourseList.Course>
 	  // 302 to get query string,
 	  // course/cs387
 	  String course_spec = "/course/" + getIdOrName();
-
 	  udacityConn.new GrabPageTask() {
 	    @Override
 	    protected void onPostExecute(HttpURLResponse resp) {
 	      List<String> locList = resp.getHeaderFields().get("Location");
-	      Log.i("Udacity.UdacityCourseList.FetchUnitList", 
-			"response code: "+resp.getResponseCode()+"\n"+ locList.get(0));
-	      setCourseURI(locList.get(0));
+	      //the return is a fully qualified URL:
+	      //http://www.udacity.com/view#Course/cs313/CourseRev/1
+	      //all that's needed is what is after #
+	      String course_path;
+	      course_path=locList.get(0);
+	      course_path=course_path.substring(course_path.indexOf("#")+1);
+	      if(DEBUG)Log.i("Udacity.UdacityCourseList.FetchUnitList", 
+			"response code: "+resp.getResponseCode()+"\n"+ locList.get(0)+"\n"+
+			course_path);
+	      
+	      setCourseURI(course_path);
 	      fetchUnitList();
 	    }
 	  }.execute(course_spec);
@@ -198,7 +206,7 @@ public class UdacityCourseList extends LinkedList<UdacityCourseList.Course>
 	  //{"data":{"path":"#Course/cs387/CourseRev/apr2012"},
 	  // "method":"course.get","version":"dacity-1"}
 	  Log.i("Udacity.UdacityCourseList.fetchNugList","fetching nugget list");
-	  udacityConn.new AsyncJSONTask() {
+	  udacityConn.new AsyncJSONGetTask() {
 	    @Override
 	    protected void onPostExecute(JSONObject JSONResp){
 	      setUnitList(JSONResp);

@@ -46,39 +46,40 @@ public class NuggetArrayAdapter extends ArrayAdapter<List<CourseRev.Unit.Nugget>
     //TODO not a big fan of this - but… it'll work for now
     if (convertView == null) {
       view = mInflater.inflate(NUGGET_ITEM_LAYOUT, parent, false);
+    
+      TextView name = (TextView) view.findViewById(NAME_VIEW);
+      List<CourseRev.Unit.Nugget> nugList = getItem(position);
+      try {
+	if(nugList.size() > 0 && nugList.get(0) != null) {
+	  CourseRev.Unit.Nugget nug;
+	  Iterator<CourseRev.Unit.Nugget> nugIter = nugList.iterator();
+	  String firstName = nugList.get(0).getName();
+	  LinkedList<String> names = new LinkedList<String>();
+	  String wStr;
+	  while(nugIter.hasNext()) {
+	    nug = nugIter.next();
+	    wStr = nug.getName().replace(firstName, "").trim();
+	    names.add((wStr.length() == 0 ? nug.getNuggetType() : wStr));
+	  }
+	  Iterator<String> nameIter = names.iterator();
+	  Log.i("Udacity.NuggetArrayAdapter.onView", "names.size()="+names.size());
+	  ViewGroup pieces = (ViewGroup)view.findViewById(HOR_LAYOUT);
+	  while(nameIter.hasNext()){
+	    TextView piece = (TextView)mInflater
+				.inflate(PIECE_ITEM_TEXTVIEW, pieces, false);
+	    pieces.addView(piece);
+	    piece.setText(nameIter.next());
+	  }
+	  name.setText(nugList.get(0).getName());	
+	} else { 
+	  name.setText(":oddity");	
+	}
+      } catch (Exception e) {
+	Log.w("Udacity.CourseArrayAdapter.getView", 
+		"Course seems to be missing fields::" + e);
+      }
     } else {
       view = convertView;
-    }
-    
-    TextView name = (TextView) view.findViewById(NAME_VIEW);
-    List<CourseRev.Unit.Nugget> nugList = getItem(position);
-    try {
-      if(nugList.size() > 0 && nugList.get(0) != null) {
-	CourseRev.Unit.Nugget nug;
-	Iterator<CourseRev.Unit.Nugget> nugIter = nugList.iterator();
-	String firstName = nugList.get(0).getName();
-	LinkedList<String> names = new LinkedList<String>();
-	String wStr;
-	while(nugIter.hasNext()) {
-	  nug = nugIter.next();
-	  wStr = nug.getName().replace(firstName, "").trim();
-	  names.add((wStr.length() == 0 ? nug.getNuggetType() : wStr));
-	}
-	Iterator<String> nameIter = names.iterator();
-	Log.i("Udacity.NuggetArrayAdapter.onView", "names.size()="+names.size());
-	ViewGroup pieces = (ViewGroup)view.findViewById(HOR_LAYOUT);
-	while(nameIter.hasNext()){
-	  TextView piece = (TextView)mInflater.inflate(PIECE_ITEM_TEXTVIEW, pieces, false);
-	  pieces.addView(piece);
-	  piece.setText(nameIter.next());
-	}
-	name.setText(nugList.get(0).getName());	
-      } else { 
-	name.setText(":oddity");	
-      }
-    } catch (Exception e) {
-      Log.w("Udacity.CourseArrayAdapter.getView", 
-	      "Course seems to be missing fields::" + e);
     }
     return view;
   }

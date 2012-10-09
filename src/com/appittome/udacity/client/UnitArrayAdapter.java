@@ -43,19 +43,20 @@ public class UnitArrayAdapter extends ArrayAdapter<CourseRev.Unit> {
     View view;
     //TODO not a big fan of this - but… it'll work for now
     if (convertView == null) {
+      Log.i("Udacity.UnitArrayAdapter.getView","init");
       view = mInflater.inflate(COURSE_ITEM_LAYOUT, parent, false);
+      TextView name = (TextView) view.findViewById(NAME_VIEW);
+      TextView id = (TextView) view.findViewById(ID_VIEW);
+      CourseRev.Unit unit = getItem(position);
+      try {
+	id.setText(unit.getId());
+	name.setText(unit.getName());
+      } catch (Exception e) {
+	Log.w("Udacity.UnitArrayAdapter.getView", 
+		"Course seems to be missing fields::" + e);
+      }
     } else {
       view = convertView;
-    }
-    TextView name = (TextView) view.findViewById(NAME_VIEW);
-    TextView id = (TextView) view.findViewById(ID_VIEW);
-    CourseRev.Unit unit = getItem(position);
-    try {
-      id.setText(unit.getId());
-      name.setText(unit.getName());
-    } catch (Exception e) {
-      Log.w("Udacity.UnitArrayAdapter.getView", 
-	      "Course seems to be missing fields::" + e);
     }
     return view;
   }
