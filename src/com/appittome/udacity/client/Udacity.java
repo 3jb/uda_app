@@ -11,6 +11,7 @@ import android.os.Bundle;
 import android.content.Context;
 
 import android.view.View;
+import android.widget.ListView;
 import android.widget.Toast;      
 
 import android.util.Log;
@@ -94,9 +95,10 @@ public class Udacity extends FragmentActivity implements
   }
 
   private class UdacityUserInterface extends UserInterface 
-				     implements UdacityCourseList.OnCourseListChangeListener
+				     implements UdacityCourseList.OnCourseListChangeListener,
+					SwipeAdapter.OnListClickListener
   {
-    protected SwipeAdapter udacityAdapter;
+    private SwipeAdapter swipeAdapter;
 
     public UdacityUserInterface() {
       super();
@@ -106,22 +108,39 @@ public class Udacity extends FragmentActivity implements
     public void showMessage(String msg) {
 	Toast.makeText(getApplicationContext(), msg, Toast.LENGTH_SHORT).show();
     }
+    public ViewPager getPager() {
+      return  (ViewPager)findViewById(R.id.pager);
+    }
+    public void setSwipeAdapter(SwipeAdapter sa) {
+      this.swipeAdapter = sa;
+    }
+    public SwipeAdapter getSwipeAdapter() {
+      SwipeAdapter retAdapter;
+      if((retAdapter = this.swipeAdapter) == null) {
+	retAdapter = new SwipeAdapter(getSupportFragmentManager(), course_list); 
+	retAdapter.addOnListClickListener(
+		    (SwipeAdapter.OnListClickListener)UdacityUserInterface.this);
+	setSwipeAdapter(retAdapter);
+      }
+      return retAdapter;
+    }
+    public void onListClick(int item, int page) {
+      if(DEBUG) Log.i("Udacity.UdacityUserInterface.onListClick",
+				  "item clicked:"+item); 
+      getPager().setCurrentItem(page+1);
+      getSwipeAdapter().notifyDataSetChanged();
+    }
+	
     public void onCourseListChange() {
       if(DEBUG) Log.i("Udacity.UdacityUserInterface.onCourseChange", 
 		      "course_list == nul? " + (course_list == null ? "true":"false"));
-      if(udacityAdapter == null) {
-	SwipeAdapter tmpAdapter = 
-	    new SwipeAdapter(getSupportFragmentManager(), course_list);
-	ViewPager pager = (ViewPager)findViewById(R.id.pager);
-	//apparently the query can beat the UI coming up, so make sure  this is 
-	//not null so check before trying to set pager.
-	if(pager != null) {
-	  pager.setAdapter(tmpAdapter);
-	  udacityAdapter = tmpAdapter;
-	}
-
+      //ViewPager pager = (ViewPager)findViewById(R.id.pager);
+      //apparently the query can beat the UI coming up, so make sure
+      //this is not null before trying to set pager.
+      if(getPager() != null && this.swipeAdapter == null) {
+	getPager().setAdapter(getSwipeAdapter());
       } else {
-	udacityAdapter.notifyDataSetChanged();
+	getSwipeAdapter().notifyDataSetChanged();
       }
     }
   }

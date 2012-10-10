@@ -43,10 +43,10 @@ public class UdacityCourseList extends LinkedList<UdacityCourseList.Course>
   }
 
   public void addAll(JSONArray jarray) throws JSONException{
-    this.add(new Course(jarray.getJSONObject(0)));
-    /*for(int i=0; i < jarray.length(); i++){
+    //this.add(new Course(jarray.getJSONObject(0)));
+    for(int i=0; i < jarray.length(); i++){
       this.add(new Course(jarray.getJSONObject(i)));
-    }*/
+    }
   }
 
   public interface OnCourseListChangeListener {
@@ -228,7 +228,6 @@ public class UdacityCourseList extends LinkedList<UdacityCourseList.Course>
     }
   
     private void setUnitList(JSONObject payload){
-      //Log.i("Udacity.UdacityCourseList.Course.setNuggetList", "set(raw): " + nugList);
       try{
 	//TODO this is absurd - String to JSON to String to… java object.
 	// need to build custom parser
@@ -244,23 +243,23 @@ public class UdacityCourseList extends LinkedList<UdacityCourseList.Course>
 
 	CourseRev.Unit unit;
 	//build list of all units
-	List<CourseRev.Unit> units = 		   rev.getUnits();
-	Iterator<CourseRev.Unit> unitIter = 	   units.iterator();
+	List<CourseRev.Unit> units = rev.getUnits();
+	Iterator<CourseRev.Unit> unitIter = units.iterator();
 	//STEP 1: build map of keys to units
 	while(unitIter.hasNext()) {
 	  unit = unitIter.next();
 	  unitMap.put(unit.getKey(), unit);
 	}
 	//build layout iterator
-	List<CourseRev.UnitLink> unitLayout = 	   rev.getUnitLayout();
+	List<CourseRev.UnitLink> unitLayout = rev.getUnitLayout();
 	Iterator<CourseRev.UnitLink> uLayoutIter = unitLayout.iterator();
 	//STEP 2: sort the units.
 	while(uLayoutIter.hasNext()) {
 	  //call UI update - list can grow.
 	  unitList.addLast(unitMap.get(uLayoutIter.next().getUnitKey()));
 	  notifyOnChangeListeners();
-	  startNuggetSortTask();
 	}
+	startNuggetSortTask();
       }catch (Exception e) {
 	if(DEBUG) 
 	  Log.w("Udacity.UdacityCourseList.fetchNugList","GSON fail: "+e);
@@ -297,6 +296,7 @@ public class UdacityCourseList extends LinkedList<UdacityCourseList.Course>
       @Override
       protected CourseRev.Unit[] doInBackground(CourseRev.Unit... units) {
 	for(CourseRev.Unit unit: units){
+	  Log.i("Udacity.UdacityCourseList.AsyncNuggetSortTask", "name: "+unit.getName());
 	  HashMap<String, CourseRev.Unit.Nugget> nugMap = 
 				      new HashMap<String, CourseRev.Unit.Nugget>();
 	  CourseRev.Unit.Nugget nug;
