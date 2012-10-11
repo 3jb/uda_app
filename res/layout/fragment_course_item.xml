@@ -11,11 +11,11 @@
 	android:paddingBottom="5sp"
 	android:paddingLeft="10sp"
 	android:paddingRight="10sp"
-	android:layout_width="wrap_content"
+	android:layout_width="70dp"
 	android:layout_height="wrap_content"
 	/>
     <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-	android:orientation="vertical"
+	android:orientation="horizontal"
 	android:layout_width="match_parent"
 	android:layout_height="wrap_content"
 	android:layout_gravity="center_vertical"

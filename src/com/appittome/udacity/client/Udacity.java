@@ -11,7 +11,9 @@ import android.os.Bundle;
 import android.content.Context;
 
 import android.view.View;
+import android.view.View.OnClickListener;
 import android.widget.ListView;
+import android.widget.ImageView;
 import android.widget.Toast;      
 
 import android.util.Log;
@@ -40,7 +42,7 @@ public class Udacity extends FragmentActivity implements
  
   //Test and "production"…
   //private static final String UDACITY_URL = "http://www.udacity.com";
-  private static final String UDACITY_URL = "http://10.0.0.3:3000";
+  private static final String UDACITY_URL = "http://10.0.0.7:3000";
   
   private class UdacityCredentials extends SignInCredentials {
     public static final String NULL_EMAIL_MSG = "email";
@@ -76,7 +78,9 @@ public class Udacity extends FragmentActivity implements
     public UdacityConnection(String url) throws MalformedURLException {
       super(new URL(url));
       if (!connectionAvailable()) 
-	//TODO implement intent
+	//TODO If there is no conneciton available, we should
+	// encourage the user to create a connection and retry,
+	// or quit.
 	if(DEBUG) Log.w("Udacity.UdacityConnection()", "No WAN connection found.");
     }
    
@@ -91,7 +95,6 @@ public class Udacity extends FragmentActivity implements
     protected JSONObject getJSONCredentials() {
       return siCred.toJSON();
     }
-    
   }
 
   private class UdacityUserInterface extends UserInterface 
@@ -103,6 +106,21 @@ public class Udacity extends FragmentActivity implements
     public UdacityUserInterface() {
       super();
       setContentView(R.layout.udacity);
+      addRefreshClickable();
+    }
+    private void addRefreshClickable(){
+      ImageView refreshImg = (ImageView)findViewById(R.id.refresh);
+      refreshImg.setClickable(true);
+      refreshImg.setOnClickListener( new OnClickListener() {
+	@Override
+	public void onClick(View v) {
+	  createNewUI();
+	  createNewCourseList();
+	  uConn.addOnConnectionReadyListener(
+			      (Connection.OnConnectionReadyListener)course_list);
+	  uConn.checkCredentials();
+	}
+      });
     }
     @Override
     public void showMessage(String msg) {
@@ -150,26 +168,20 @@ public class Udacity extends FragmentActivity implements
   public void onCreate(Bundle savedInstanceState)
   {
     super.onCreate(savedInstanceState);
-    this.ui = new UdacityUserInterface();
-    this.siCred = new UdacityCredentials();
-    this.course_list = 
-	  new UdacityCourseList((UdacityCourseList.OnCourseListChangeListener)ui);
-
-   try {
-      this.uConn = new UdacityConnection(UDACITY_URL);
-      this.uConn.setCsrfTokenListener(this);
-      this.uConn.addOnConnectionReadyListener(
-			      (Connection.OnConnectionReadyListener)course_list);
-    } catch (MalformedURLException e){
-      Log.w("Udacity.Udacity.onCreate()", "Malformed URL:: " + e);
-    }
+    createNewUI();
+    createNewCredentials();
+    createNewCourseList();
+    createNewConnection();
+    uConn.checkCredentials();
   }
   @Override
   public void onResume()
   {
     super.onResume();
     //TODO this refreshes far too often…
-    uConn.checkCredentials();
+    // should figure out how old the cookie is and 
+    // see if refresh necessary 
+    //uConn.checkCredentials();
   }
 
   public void promptForCredentials() {
@@ -196,6 +208,26 @@ public class Udacity extends FragmentActivity implements
     //ft.addToBackStack(null);
     prev.dismiss();
   }
-
-
+  public void createNewUI() {
+    this.ui = new UdacityUserInterface();
+  }
+  public void createNewCredentials() {
+    this.siCred = new UdacityCredentials();
+  }
+  public void createNewCourseList() {
+    this.course_list = 
+	  new UdacityCourseList((UdacityCourseList.OnCourseListChangeListener)ui);
+  }
+  public void createNewConnection() {
+   try {
+      this.uConn = new UdacityConnection(UDACITY_URL);
+      this.uConn.setCsrfTokenListener(this);
+      if(course_list != null) this.uConn.addOnConnectionReadyListener(
+			      (Connection.OnConnectionReadyListener)course_list);
+    } catch (MalformedURLException e){
+      //This can die queitly because the URL is static
+      // and this should never happen.
+      if(DEBUG)Log.w("Udacity.Udacity.onCreate()", "Malformed URL:: " + e);
+    }
+  }
 }

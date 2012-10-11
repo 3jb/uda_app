@@ -52,7 +52,7 @@ public class UnitArrayAdapter extends ArrayAdapter<CourseRev.Unit> {
     TextView id = (TextView) view.findViewById(ID_VIEW);
     CourseRev.Unit unit = getItem(position);
     try {
-      id.setText(unit.getId());
+      id.setText(Integer.toString(position+1));//unit.getId());
       name.setText(unit.getName());
     } catch (Exception e) {
       Log.w("Udacity.UnitArrayAdapter.getView", 
