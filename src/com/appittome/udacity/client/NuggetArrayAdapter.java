@@ -2,16 +2,19 @@ package com.appittome.udacity.client;
 
 import android.content.Context;
 import android.app.Activity;
+import android.content.Intent;
 import android.widget.ArrayAdapter;
 
 import android.util.Log;
 
 import android.view.View;
+import android.view.View.OnClickListener;
 import android.view.LayoutInflater;
 import android.view.ViewGroup;
 import android.widget.TextView;
 import android.widget.ImageView;
 
+import android.net.Uri;
 import java.net.URL;
 import java.io.InputStream;
 import java.io.IOException;
@@ -25,6 +28,7 @@ import java.util.LinkedList;
 import java.util.Iterator;
 
 import com.udacity.api.CourseRev;
+import com.udacity.api.NuggetType;
 
 public class NuggetArrayAdapter extends ArrayAdapter<List<CourseRev.Unit.Nugget>> {
 
@@ -35,10 +39,24 @@ public class NuggetArrayAdapter extends ArrayAdapter<List<CourseRev.Unit.Nugget>
   private static final int NAME_VIEW = R.id.nugget_name;
   private static final int NUM_VIEW = R.id.nugget_number;
   private static LayoutInflater mInflater;
+  private static Activity context;
 
   public NuggetArrayAdapter(Activity context, List<List<CourseRev.Unit.Nugget>> nug_array) {
     super(context, NUGGET_ITEM_LAYOUT, nug_array);
-    mInflater = (LayoutInflater)context.getSystemService(Context.LAYOUT_INFLATER_SERVICE);
+    this.mInflater = (LayoutInflater)context.getSystemService(Context.LAYOUT_INFLATER_SERVICE);
+    this.context = context;
+  }
+  private String toWord(NuggetType t) {
+    String retS = "program";
+    switch(t){
+      case lecture:
+	   retS = "Lecture";
+	   break;
+      case quiz:
+	   retS = "Question";
+	   break;
+    }
+    return retS;
   }
 
   @Override
@@ -55,6 +73,7 @@ public class NuggetArrayAdapter extends ArrayAdapter<List<CourseRev.Unit.Nugget>
     }
     TextView num = (TextView) view.findViewById(NUM_VIEW);	  
     TextView name = (TextView) view.findViewById(NAME_VIEW);
+    ViewGroup pieces = (ViewGroup)view.findViewById(HOR_LAYOUT);
     List<CourseRev.Unit.Nugget> nugList = getItem(position);
     if(DEBUG)Log.i("Udacity.NuggetArrayAdapter.getView","nugList.size " +nugList.size());
     try {
@@ -62,21 +81,28 @@ public class NuggetArrayAdapter extends ArrayAdapter<List<CourseRev.Unit.Nugget>
 	CourseRev.Unit.Nugget nug;
 	Iterator<CourseRev.Unit.Nugget> nugIter = nugList.iterator();
 	String firstName = nugList.get(0).getName();
-	LinkedList<String> names = new LinkedList<String>();
-	String wStr;
+	TextView piece;
+	String nName;
 	while(nugIter.hasNext()) {
 	  nug = nugIter.next();
-	  wStr = nug.getName().replace(firstName, "").trim();
-	  names.add((wStr.length() == 0 ? nug.getNuggetType() : wStr));
-	}
-	Iterator<String> nameIter = names.iterator();
-	Log.i("Udacity.NuggetArrayAdapter.onView", "names.size()="+names.size());
-	ViewGroup pieces = (ViewGroup)view.findViewById(HOR_LAYOUT);
-	while(nameIter.hasNext()){
-	  TextView piece = (TextView)mInflater
+	  nName = nug.getName().replace(firstName, "").trim();
+	  nName = (nName.length() == 0 ? toWord(nug.getNuggetType()) : nName);
+	  piece = (TextView)mInflater
 			      .inflate(PIECE_ITEM_TEXTVIEW, pieces, false);
+	  piece.setText(nName);
+	  if(nug.getMedia() != null) {
+	    final String youtubeId = nug.getMedia().getYoutubeId();
+	    piece.setClickable(true);
+	    piece.setOnClickListener( 
+			    new OnClickListener() {
+				@Override
+				public void onClick(View v) {
+				  context.startActivity(new Intent(Intent.ACTION_VIEW, 
+				  Uri.parse("http://www.youtube.com/watch?v="+youtubeId)));
+				}
+			    });
+	  }
 	  pieces.addView(piece);
-	  piece.setText(nameIter.next());
 	}
 	name.setText(nugList.get(0).getName());
 	num.setText(Integer.toString(position+1));

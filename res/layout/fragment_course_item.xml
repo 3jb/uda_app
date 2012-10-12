@@ -5,6 +5,8 @@
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     >
+    <TextView style="@style/courseId"
+	android:id="@+id/course_id"/>
     <ImageView
 	android:id="@+id/course_icon"
 	android:paddingTop="5sp"
@@ -14,15 +16,6 @@
 	android:layout_width="70dp"
 	android:layout_height="wrap_content"
 	/>
-    <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-	android:orientation="horizontal"
-	android:layout_width="match_parent"
-	android:layout_height="wrap_content"
-	android:layout_gravity="center_vertical"
-	>
-	<TextView style="@style/courseId"
-	    android:id="@+id/course_id"/>
-	<TextView style="@style/courseName"
-	    android:id="@+id/course_name"/>
-    </LinearLayout>
+    <TextView style="@style/courseName"
+	android:id="@+id/course_name"/>
 </LinearLayout>

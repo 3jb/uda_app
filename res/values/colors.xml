@@ -7,5 +7,6 @@
     <color name="uda_blue">#ff2c9ed9</color>
     <color name="light_gray">#ffe0e0e0</color>
     <color name="medium_gray">#ffa0a0a0</color>
-    <color name="dark_gray">#ff606060</color>
+    <color name="dark_gray">#ff505050</color>
+    <color name="gray_blend">#ff404040</color>
 </resources>
