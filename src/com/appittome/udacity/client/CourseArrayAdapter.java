@@ -41,7 +41,7 @@ public class CourseArrayAdapter extends ArrayAdapter<UdacityCourseList.Course> {
 
   @Override
   public View getView(int position, View convertView, ViewGroup parent){
-    if(DEBBUG) Log.i("Udacity.CourseArrayAdapter.getView","position == " + position);
+    if(DEBUG) Log.i("Udacity.CourseArrayAdapter.getView","position == " + position);
     View view;
     //TODO not a big fan of this - but… it'll work for now
     if (convertView == null) {

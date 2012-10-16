@@ -234,6 +234,8 @@ public class UdacityCourseList extends LinkedList<UdacityCourseList.Course>
       String ret = "";
       try {
 	ret = course_info.getString(JSON_ICON);
+	//for some odd reason, some of the image urls are missing the leading http:
+	ret = ret.substring(0,5).equalsIgnoreCase("http:")? ret : "http:"+ret;
       } catch (JSONException e){
 	if(DEBUG) Log.w("Udacity.UdacityCourseList.getIconURL()","invalid JSON"+e);
 	revalidateCourse();

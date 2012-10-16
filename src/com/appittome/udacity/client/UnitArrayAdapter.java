@@ -30,7 +30,7 @@ import com.udacity.api.CourseRev;
  */
 public class UnitArrayAdapter extends ArrayAdapter<CourseRev.Unit> {
   /** debug log switch*/
-  private static final boolean DEUBG = true;
+  private static final boolean DEBUG = true;
   private static final int COURSE_ITEM_LAYOUT = R.layout.fragment_unit_item;
   private static final int ID_VIEW = R.id.unit_id;
   private static final int NAME_VIEW = R.id.unit_name;

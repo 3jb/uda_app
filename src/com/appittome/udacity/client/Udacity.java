@@ -60,25 +60,21 @@ import org.json.JSONArray;
  * to create new views that will then be linked back to the appropriate 
  * parent in the display graph.  A seperate UI class ({@link UserInterface}) holds
  * a set of utilites for the UI that access the activity through a subclass 
- * UdacityUserInterface that populates a set of abstract methods to access 
- * critical methods of the acivity, thereby limiting direct dependance and enabling
- * modularity.</p>
+ * <code>UdacityUserInterface</code> that populates a set of abstract methods to 
+ * access critical methods of the acivity, thereby limiting direct dependance and
+ * enabling modularity.</p>
  * <p>The second portion of the UI, the {@link SwipeAdapter} is a bit more conventional
  * as it implements a FragmentStatePagerAdapter, that requires the activity (or context)
  * as an argument.</p> 
  * <p>This implementation is disjoint, but came about as a result of itteratively adding
  * complexity.</p>
  * <p>
- * <b>Network Connection</b> required access to a number of Network oriented Android
+ * <b>Network Connection</b> required access to a Network oriented Android
  * services available only through the activity.  The method of abstracting the necessary
  * parts to be extended as a subclass of Udacity was used to allow similar benifits to 
  * the User Interface.</p>
- * <p>The method of extending abstracted classes as subclasses is funcitonaly rather lovely,
- * but if the extension becomes to intensive or elaborate - this class will become cluttered
- * (which is how it appears to me right now).</p>
  * <p>The third portion included here is intended to act as part of the model:</p>
- * <b>Credentials</b> are included as an extended subclass orignally mostly because I 
- * was in a rut of constructing things that way, and needed access between methods 
+ * <b>Credentials</b> are included as an extended subclass neededing access between methods 
  * of the credentials, the connection (to test the credentials), and the UI (to request
  * new credentials from the user).  This does not really belong here and should at some
  * time be removed.
@@ -86,12 +82,12 @@ import org.json.JSONArray;
  * The way it stands the progression though: checking credentials &#62 possibly getting new 
  * credentials &#62 checking credentials &#62 fetch "account.courses_of_interest" &#62
  * bouncing on the course path redirects &#62 "course.get" is all asyncronous and rather 
- * impossible to stop once your start as one thing often leads directly to the next.
+ * impossible to stop once started as one thing often leads directly to the next.
  * The next evolution should involve listeners (probably here for now, near the
  * [controler/activity]) at each joint to allow more interesting control of the progression.
  * In anycase, a progression usually consists of a static path through methods, and 
  * thereby new paths should be easily enough generated from subclasses of the Async classes
- * in Connection.java (JSONPost, JSONGet, and grabPage) wherein onPostExecute can be 
+ * in {@link Connection} (JSONPost, JSONGet, and grabPage) wherein onPostExecute can be 
  * implemented to the desired next turn.</p>
  *
  * @author Evan J Brunner
@@ -111,7 +107,7 @@ public class Udacity extends FragmentActivity implements
  
   /**Test vs "production"…*/
   //private static final String UDACITY_URL = "http://www.udacity.com";
-  private static final String UDACITY_URL = "http://10.0.0.7:3000";
+  private static final String UDACITY_URL = "http://10.0.0.100:3000";
 
  /**  Extension of the SignInCredentials.
    *  This was done to allow the credentials to stop the current ASYNC
