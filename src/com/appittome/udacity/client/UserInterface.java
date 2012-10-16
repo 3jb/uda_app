@@ -4,6 +4,7 @@ import android.app.Activity;
 import android.os.Bundle;
 
 import android.support.v4.app.DialogFragment;
+import android.support.v4.view.ViewPager;
 
 import android.view.View;
 import android.view.ViewGroup;
@@ -15,17 +16,38 @@ import android.widget.TextView;
 import android.widget.EditText;
 
 import android.util.Log;
-
-public class UserInterface 
+/**
+ * Utility class for managing parts of the user interface.
+ *
+ */
+public abstract class UserInterface 
 {
+  /** debug log switch*/
   private static final boolean DEBUG = true;
+  /** root view for this UI*/
+  private View udacityView;
+  /** Adapter managing page changes on swipes etc*/
+  protected SwipeAdapter swipeAdapter;
+  /** 
+   * Dialog used to prompt user for new credentials.  On button press this 
+   * dialog notifies the registered listener of a credentials update.
+   */
   public static class CredentialsDialog extends DialogFragment {
     private static OnNewCredentialsListener cL;
     private static String email;
     private static String password;
-
+    /**
+     * Interface to notify a single listener of a credentials update
+     * from the user.
+     */
     public interface OnNewCredentialsListener
     {
+      /**
+       * When the dialog button is pressed with a new set of credentials
+       * this listener will be updated with the current credentials.
+       * @param email new user email
+       * @param pass new user password
+       */
       public void onNewCredentials(String email, String pass);
     }
 
@@ -60,12 +82,47 @@ public class UserInterface
       }
     }
   }
-
+  /**
+   * The swipe adapter needs activity resources to get up and going,
+   * so this is expected to be implemented in an activity subclass.
+   * @see android.support.v4.app.FragmentActivity
+   */
+  abstract public SwipeAdapter getSwipeAdapter();
+  /**
+   * Gets a new credentials dialog to prompt the user for fresh 
+   * credentials.
+   * @return a fragment ready to be loaded into a transaction.
+   */
   public static DialogFragment getCredentialsDialog() {
     return (DialogFragment)new CredentialsDialog();
   }
-
-  public void showMessage(String msg) {
+  /**
+   * Sets the root view of this UI.
+   * @param v root view of this object
+   */
+  public void setRootView(View v) {
+    this.udacityView = v;
   }
-
+  /**
+   * Gets the root view of this UI.
+   * @return root view of this object
+   */
+  public View getRootView() {
+    return udacityView;
+  }
+  /**
+   * Gets the pager view from the root view of this object.
+   * @return pager view of this UI
+   */
+  public ViewPager getPager() {
+    return  (ViewPager)getRootView().findViewById(R.id.pager);
+  }
+  /** 
+   * Sets a pointer to the current swipeAdapter for this UI
+   * @param sa the swipeAdapter to hold reference to.
+   */
+  public void setSwipeAdapter(SwipeAdapter sa) {
+    this.swipeAdapter = sa;
+    getPager().setAdapter(this.swipeAdapter);
+  }
 }

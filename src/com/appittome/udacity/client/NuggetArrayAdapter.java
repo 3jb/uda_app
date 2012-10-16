@@ -29,9 +29,13 @@ import java.util.Iterator;
 
 import com.udacity.api.CourseRev;
 import com.udacity.api.NuggetType;
-
+/**
+ * Array adapter that displays a nugget topic group in a listFragment.
+ * Shows topic name, and sub-nuggets with appropriate links to youtube 
+ * videos.
+ */
 public class NuggetArrayAdapter extends ArrayAdapter<List<CourseRev.Unit.Nugget>> {
-
+  /** log debug switch */
   private static final boolean DEBUG = true;
   private static final int NUGGET_ITEM_LAYOUT= R.layout.fragment_nugget_item;
   private static final int PIECE_ITEM_TEXTVIEW= R.layout.nugget_piece_template;
@@ -61,7 +65,7 @@ public class NuggetArrayAdapter extends ArrayAdapter<List<CourseRev.Unit.Nugget>
 
   @Override
   public View getView(int position, View convertView, ViewGroup parent){
-    Log.i("Udacity.CourseArrayAdapter.getView","position == " + position);
+    if(DEBUG)Log.i("Udacity.CourseArrayAdapter.getView","position == " + position);
     View view;
     //TODO not a big fan of this - but… it'll work for now
     if (convertView == null) {
@@ -110,12 +114,10 @@ public class NuggetArrayAdapter extends ArrayAdapter<List<CourseRev.Unit.Nugget>
 	name.setText(":oddity");	
       }
     } catch (Exception e) {
-      Log.w("Udacity.CourseArrayAdapter.getView", 
+      if(DEBUG)Log.w("Udacity.CourseArrayAdapter.getView", 
 	      "Course seems to be missing fields::" + e);
     }
-    //view.setDrawingCacheBackgroundColor(Integer.parseInt("FFFF0000",16));
     return view;
   }
 
 }
-

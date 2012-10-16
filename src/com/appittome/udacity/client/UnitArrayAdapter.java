@@ -24,9 +24,13 @@ import org.json.JSONObject;
 import org.json.JSONException;
 
 import com.udacity.api.CourseRev;
-
+/**
+ * Custom array adapter to represent unit in listFragment.
+ * Shows unit name, and it's [number/position] in the unit list.
+ */
 public class UnitArrayAdapter extends ArrayAdapter<CourseRev.Unit> {
-
+  /** debug log switch*/
+  private static final boolean DEUBG = true;
   private static final int COURSE_ITEM_LAYOUT = R.layout.fragment_unit_item;
   private static final int ID_VIEW = R.id.unit_id;
   private static final int NAME_VIEW = R.id.unit_name;
@@ -39,11 +43,11 @@ public class UnitArrayAdapter extends ArrayAdapter<CourseRev.Unit> {
 
   @Override
   public View getView(int position, View convertView, ViewGroup parent){
-    Log.i("Udacity.UnitArrayAdapter.getView","position == " + position);
+    if(DEBUG)Log.i("Udacity.UnitArrayAdapter.getView","position == " + position);
     View view;
     //TODO not a big fan of this - but… it'll work for now
     if (convertView == null) {
-      Log.i("Udacity.UnitArrayAdapter.getView","init");
+      if(DEBUG)Log.i("Udacity.UnitArrayAdapter.getView","init");
       view = mInflater.inflate(COURSE_ITEM_LAYOUT, parent, false);
     } else {
       view = convertView;
@@ -55,11 +59,9 @@ public class UnitArrayAdapter extends ArrayAdapter<CourseRev.Unit> {
       id.setText(Integer.toString(position+1));//unit.getId());
       name.setText(unit.getName());
     } catch (Exception e) {
-      Log.w("Udacity.UnitArrayAdapter.getView", 
+      if(DEBUG)Log.w("Udacity.UnitArrayAdapter.getView", 
 	      "Course seems to be missing fields::" + e);
     }
     return view;
   }
-
 }
-

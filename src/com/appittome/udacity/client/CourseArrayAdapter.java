@@ -21,8 +21,13 @@ import android.graphics.drawable.Drawable;
 import org.json.JSONObject;
 import org.json.JSONException;
 
+/**
+ * Array adapter extension that displays Courses in a listFragment with 
+ * icon, name and id all visible.
+ */
 public class CourseArrayAdapter extends ArrayAdapter<UdacityCourseList.Course> {
-
+  /** debug log switch*/
+  private static final boolean DEBUG = true;
   private static final int COURSE_ITEM_LAYOUT = R.layout.fragment_course_item;
   private static final int ICON_VIEW = R.id.course_icon;
   private static final int ID_VIEW = R.id.course_id;
@@ -36,7 +41,7 @@ public class CourseArrayAdapter extends ArrayAdapter<UdacityCourseList.Course> {
 
   @Override
   public View getView(int position, View convertView, ViewGroup parent){
-    Log.i("Udacity.CourseArrayAdapter.getView","position == " + position);
+    if(DEBBUG) Log.i("Udacity.CourseArrayAdapter.getView","position == " + position);
     View view;
     //TODO not a big fan of this - but… it'll work for now
     if (convertView == null) {
@@ -52,9 +57,9 @@ public class CourseArrayAdapter extends ArrayAdapter<UdacityCourseList.Course> {
 	icon.setImageDrawable(Drawable.createFromStream(is, "src"));
       }catch (IOException e) {
 	//TODO sub in default image…
-	Log.w("Udacity.CourseArrayAdapter.getView","Exception "+e); 
+	if(DEBUG) Log.w("Udacity.CourseArrayAdapter.getView","Exception "+e); 
       } catch (Exception e) {
-	Log.w("Udacity.CourseArrayAdapter.getView", 
+	if(DEBUG) Log.w("Udacity.CourseArrayAdapter.getView", 
 		"Course seems to be missing fields::" + e);
       }
     } else {
