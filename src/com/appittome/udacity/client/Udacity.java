@@ -401,4 +401,19 @@ public class Udacity extends FragmentActivity implements
   public UdacityCredentials getCredentials() {
     return this.siCred;
   }
+  /**
+   * Back-crash-quick-fix.  The back button causes the app to crash.
+   * attempting to pop something off the back stack - it finds nothing,
+   * and accidentally exits the app.  When you restart, the app is in 
+   * an unatural state, asks for login - finds a null pointer where
+   * there should be a fragment, and crashes.  This implementation
+   * doesn't properly populate the backstack - but forces the app to 
+   * close instead (which can be disorienting for the user).
+   */
+  @Override
+  public void onBackPressed() {
+    super.onBackPressed();
+    //TODO fix backstack
+    System.exit(0);
+  }
 }
