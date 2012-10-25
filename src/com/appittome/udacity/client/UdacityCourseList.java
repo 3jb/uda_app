@@ -17,6 +17,7 @@ import org.json.JSONException;
 
 import com.google.gson.Gson;
 import com.udacity.api.CourseRev;
+import com.udacity.api.Request;
 /**
  * Course List managing class. Manages the model for this application.
  * This class updates its own state using a connection to create a local
@@ -137,9 +138,8 @@ public class UdacityCourseList extends LinkedList<UdacityCourseList.Course>
    * containing an array of courses to populate this list.
    */
   private void fetchCourseList() {
-    //TODO reimplement with GDON, enum, and com.udacity.api
-    // for better maintainability.
-    JSONObject data = new JSONObject();
+    //TODO remove commented code
+    /*JSONObject data = new JSONObject();
     JSONObject payload = new JSONObject();
     try {
       payload.put("data", data);
@@ -147,9 +147,9 @@ public class UdacityCourseList extends LinkedList<UdacityCourseList.Course>
       payload.put("version","dacity-1");
     } catch (JSONException e){
       if(DEBUG) Log.w("Udacity.UdacityConnection.fetchCourseList()", e);
-    }
+    }*/
 
-    udacityConn.new AsyncJSONGetTask() {
+    udacityConn.new AsyncGSONGetTask() {
       @Override
       protected void onPostExecute(JSONObject json) {
 	try{
@@ -161,7 +161,7 @@ public class UdacityCourseList extends LinkedList<UdacityCourseList.Course>
 		    "Server did not return valid JSON::" + e);
 	}
       }
-    }.execute(payload);
+    }.execute(Request.coursesOfInterest());
   }	
   /**
    * Class to represent members of the CourseList object: courses.
@@ -322,29 +322,13 @@ public class UdacityCourseList extends LinkedList<UdacityCourseList.Course>
 	    }
 	  }.execute(course_spec);
 	} else {
-	  //TODO refactor with GSON and com.udacity.api
-	  // for maintainability.
-	  JSONObject data = new JSONObject();
-	  JSONObject payload = new JSONObject();
-	  try{
-	    data.put("path", getCourseURI());
-	    payload.put("data",data);
-	    payload.put("method", "course.get");
-	    payload.put("version", "dacity-1");
-	  }catch (JSONException e) {
-	    if(DEBUG) 
-	      Log.w("Udacity.UdacityCourseList.fetchUnitList","Should never happen");
-	  }
-	  //then JSON::
-	  //{"data":{"path":"#Course/cs387/CourseRev/apr2012"},
-	  // "method":"course.get","version":"dacity-1"}
 	  if(DEBUG) Log.i("Udacity.UdacityCourseList.fetchNugList","fetching nugget list");
-	  udacityConn.new AsyncJSONGetTask() {
+	  udacityConn.new AsyncGSONGetTask() {
 	    @Override
 	    protected void onPostExecute(JSONObject JSONResp){
 	      setUnitList(JSONResp);
 	    }
-	  }.execute(payload);
+	  }.execute( Request.courseGet(getCourseURI()));
 	}
       }
     }

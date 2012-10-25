@@ -195,11 +195,19 @@ public class Udacity extends FragmentActivity implements
      *  Connection was already subclassed here, provided a convinient way to 
      *  snatch the credentials.
      *
-     *  @return JSONObject representing the user credentials appropriate for login
+     *  @return Object representing the user credentials appropriate for login
      */
     @Override
-    protected JSONObject getJSONCredentials() {
+    protected Object getJSONCredentials() {
       return siCred.toJSON();
+    }
+    /**
+     *  Provided credentials failed, so we'll re-prompt the user.
+     *  Could add additional info about # of tries, server warnings etc.
+     */
+    @Override
+    protected void invalidateCredentials() {
+      promptForCredentials();
     }
   }
 

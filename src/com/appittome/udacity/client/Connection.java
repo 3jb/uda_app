@@ -24,6 +24,8 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.HashSet;
 import java.util.Iterator;
+
+import com.google.gson.Gson;
 /**
  * A generic class to manage asynchronous HttpUrlConnections.  Asycn connections
  * can be generally implemented by extending the Task subclasses of this class.
@@ -74,7 +76,13 @@ public abstract class Connection
    * {@link SignInCredentials} Object.
    * @return JSONObject representing valid credentials for login
    */
-  abstract JSONObject getJSONCredentials();
+  abstract Object getJSONCredentials();
+
+  /**
+   * Called when the credentails supplied could not be validated
+   * by the server.  Notfiy the user, and possibly try new credentials.
+   */
+  abstract void invalidateCredentials();
 //--- LISTENER INTERFACES ---//
   /**
    * Implement to listen for new CSRF_TOKENS.  Each time a new token is found
@@ -167,6 +175,8 @@ public abstract class Connection
 	    JSONObject payload = JSONResp.getJSONObject("payload");
 	    if( payload.getBoolean("reload") ) {
 	      checkCredentials();
+	    }else{
+	      invalidateCredentials();
 	    }
 	  } catch (JSONException e) {
 	    if(DEBUG) 
@@ -177,7 +187,7 @@ public abstract class Connection
     } catch (NullPointerException e){
       //Expect to catch NullCredentialsException here - thus killing this, asking 
       //for new credentials, and then re-spawning the task after the dialog is closed
-      if(DEBUG) Log.w("Udacity.Connection.fetchNewCookie",e.toString());
+      if(DEBUG) Log.w("Udacity.Connection.fetchNewCookie lousy credentials",e.toString());
     }
   }
 
@@ -244,21 +254,21 @@ public abstract class Connection
    * POST JSON to URL+AJAX_SPEC.
    * Extended with onPostExecute, and run with <code>execute</code>
    */
-  public class AsyncJSONPostTask extends AsyncTask<JSONObject, Integer, JSONObject>
+  public class AsyncJSONPostTask extends AsyncTask<Object, Integer, JSONObject>
   {
     /**
      * Asynchronously POST JSONObect to URL+AJAX_SPEC
-     * @param jsonArray JSON to be POSTed to server on URL+AJAX_SPEC
+     * @param objArray Objects to be POSTed to server on URL+AJAX_SPEC
      *                   Note: don't actually POST an array of objects, this
      *                   will only return the response from the last object.
      * @return JSONObject the json response from URL+AJAX_SPEC
      */
     @Override
-    protected JSONObject doInBackground(JSONObject... jsonArray) {
+    protected JSONObject doInBackground(Object... objArray) {
       JSONObject retVal = null;
-      for (JSONObject json : jsonArray) { 
+      for (Object obj : objArray) { 
 	try{
-	  retVal = new JSONObject(postJSON(json, url ).getResponse());
+	  retVal = new JSONObject(postJSON(obj, url ).getResponse());
 	}catch (SocketTimeoutException e){
 	  if(DEBUG) Log.w("Udacity.Connection.AsyncJSONPostTask::",
 			  "Readtimeout - the server is slow");
@@ -301,6 +311,35 @@ public abstract class Connection
     }
   }
 
+  public class AsyncGSONGetTask extends AsyncTask<Object, Integer, JSONObject>
+  {
+    /**
+     * Send a GSONObject to URL+AJAX_SPEC via GET.
+     * This is a temporary duplicate to allow rollover to GSON objects
+     * for maintainability.
+     * Array parameters will return the last reponse in the array.
+     * @param object object to be serialized with Gson().toJson(Object)
+     * @return JSONObject response object
+     */
+    @Override
+    protected JSONObject doInBackground(Object... objectArray) {
+      JSONObject retVal = null;
+      for (Object obj : objectArray) { 
+	try{
+	  //TODO this is the next part to be rolled over once JSONTask is removed
+	  JSONObject json = new JSONObject(new Gson().toJson(obj));
+	  retVal = new JSONObject(getJSON(json, url ).getResponse());
+	}catch (SocketTimeoutException e){
+	  if(DEBUG) Log.w("Udacity.Connection.AsyncJSONGetTask::",
+			  "Readtimeout - the server is slow");
+	}catch (Exception e){
+	  if(DEBUG) Log.w("Udacity.Connection.AsyncJSONGetTask::",e);
+	}
+      }
+      //TODO If you ever actaully post an array - the return won't work.
+      return retVal;
+    }
+  }
 
 //---CONNECTION TYPES---//
   /**
@@ -364,9 +403,9 @@ public abstract class Connection
    * @return HttpURLResponse Object representing full http reponse 
    * @throws IOExeception if reponse stream cannot be properly handled
    */
-  private HttpURLResponse postJSON(JSONObject jObj, URL mUrl) throws IOException 
+  private HttpURLResponse postJSON(Object obj, URL mUrl) throws IOException 
   {
-    String message = jObj.toString();
+    String message = new Gson().toJson(obj);
     HttpURLResponse resp = null;
 
     URL qUrl = new URL(mUrl, AJAX_SPEC);

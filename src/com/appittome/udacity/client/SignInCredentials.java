@@ -3,6 +3,7 @@ package com.appittome.udacity.client;
 import org.json.JSONObject;
 import org.json.JSONException;
 import android.util.Log;
+import com.udacity.api.Request;
 /**
  *  Hold the state of the current user credentials.
  *
@@ -14,9 +15,6 @@ public class SignInCredentials implements Connection.OnNewCsrfTokenListener {
   protected String password;
   /**Current token stored in this object */
   protected String csrf_token;
-  //TODO this should be replaced with an enum or something from com.udacity.api
-  private static final String METHOD = "account.sign_in";
-  private static final String VERSION = "dacity-1";
 
   /**
    *  Generate on failure to find expected Credentials
@@ -120,30 +118,16 @@ public class SignInCredentials implements Connection.OnNewCsrfTokenListener {
     setCsrfToken(token);
   }
   /** 
-   * Converts this Credentials object to a Udacity login JSONObject.
-   * @return a JSONObect representing this credentials object as necessary for 
+   * Converts this Credentials object to a Udacity.api.Request.loginRequest Object.
+   * @return a Obect representing this credentials object as necessary for 
    *         the Udacity login.
    */
-  public JSONObject toJSON() throws NullCredentialsException {
-    //TODO replace with enum, GSON, and com.udacity.api
-    JSONObject retObj = new JSONObject();
-    JSONObject data = new JSONObject();
-    Log.w("Udacity.SignInCredentials.toJSON", "begin assembling JSON…");
-    try {
-      //User relavant attibutes
-      data.put("email", getEmail());
-      data.put("password", getPassword());
-      retObj.put("data", data);
-      //Client relavant attibutes
-      retObj.put("method", METHOD);
-      retObj.put("version", VERSION);
-      retObj.put("csrf_token", getCsrf_token());
-    } catch (JSONException e) {
-      Log.w("Udacity.SignInCredentials.toJSON()", e);
-    } catch (NullCredentialsException e) {
-      throw new NullCredentialsException(e.toString());
-    }
-    return retObj;
+  public Object toJSON() throws NullCredentialsException {
+       return Request.loginBuilder()
+      		     .setEmail(getEmail())
+		     .setPass(getPassword())
+		     .setToken(getCsrf_token())
+		     .build();
   }
 }
 
