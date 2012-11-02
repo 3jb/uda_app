@@ -7,6 +7,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.LinkedList;
 import java.util.HashMap;
+import java.util.Iterator;
 
 import java.util.HashSet;
 import java.util.Iterator;
@@ -18,6 +19,8 @@ import org.json.JSONException;
 import com.google.gson.Gson;
 import com.udacity.api.CourseRev;
 import com.udacity.api.Request;
+import com.udacity.api.Response;
+import com.udacity.api.CourseGetResponse;
 /**
  * Course List managing class. Manages the model for this application.
  * This class updates its own state using a connection to create a local
@@ -27,14 +30,6 @@ import com.udacity.api.Request;
 public class UdacityCourseList extends LinkedList<UdacityCourseList.Course>
 				implements Connection.OnConnectionReadyListener
 {
-  /**JSONObject key for course Name*/ 
-  public static final String JSON_NAME = "name";
-  /**JSONObject key for course ID */
-  public static final String JSON_ID   = "id";
-  /**JSONObject key for course icon url */
-  public static final String JSON_ICON = "icon_url";
-  /**JSONObject key for "id_or_name" */
-  public static final String JSON_ID_OR_NAME = "id_or_name";
 
   /**Course list has access to a connection object*/
   private static Connection udacityConn; 
@@ -60,25 +55,21 @@ public class UdacityCourseList extends LinkedList<UdacityCourseList.Course>
    * @param ui Listener object that responds to graph changes in the course list.
    * @param payload JSONObject response from GET account.courses_of_interest.
    * @throws JSONException if JSON object does not conform to expected format.
-   */
+   *
   public UdacityCourseList(JSONObject payload, OnCourseListChangeListener ui) 
 							      throws JSONException{
     addOnChangeListener(ui);
     addAll(payload.getJSONArray("courses"));
-  }
+  }*/
   /**
    * Takes JSON response from account.courses_of_interest and builds a course list.
-   * This method will eventually be supplatned with GSON and com.udacity.api, but for 
-   * now the expected JSONObject format is static in this class.  A JSONArray is parsed
-   * to find the names, icons and ids of all the included courses.  The UI is updated,
-   * and async processes are started to querry the server with a GET course.get for each 
-   * course included.
-   * @param jarray JSON array of courses
-   * @throws JSONException if JSON does not conform to expected format
+   * Course constructor invokes course.get
+   * @param infos array of course infos
    */
-  public void addAll(JSONArray jarray) throws JSONException{
-    for(int i=0; i < jarray.length(); i++){
-      this.add(new Course(jarray.getJSONObject(i)));
+  public void addAll(List<Response.CourseInfo> infos) {
+    Iterator<Response.CourseInfo> i = infos.iterator();
+    while (i.hasNext()) {
+      this.add(new Course(i.next()));
     }
   }
   /**
@@ -134,34 +125,18 @@ public class UdacityCourseList extends LinkedList<UdacityCourseList.Course>
   }
 
   /**
-   * Perform a GET account.courses_of_interest, returning a JSON object
-   * containing an array of courses to populate this list.
+   * Perform a GET account.courses_of_interest, returning a 
+   * Response.CourseListobject containing an array of courses
+   * to populate this list.
    */
   private void fetchCourseList() {
-    //TODO remove commented code
-    /*JSONObject data = new JSONObject();
-    JSONObject payload = new JSONObject();
-    try {
-      payload.put("data", data);
-      payload.put("method","account.courses_of_interest");
-      payload.put("version","dacity-1");
-    } catch (JSONException e){
-      if(DEBUG) Log.w("Udacity.UdacityConnection.fetchCourseList()", e);
-    }*/
-
-    udacityConn.new AsyncGSONGetTask() {
+    udacityConn.new AsyncJSONGetTask<Response.CourseList>() {
       @Override
-      protected void onPostExecute(JSONObject json) {
-	try{
-	  if(DEBUG) Log.i("UdacityConnection.fetchCourseList", json.toString());
-	  addAll(json.getJSONObject("payload").getJSONArray("courses"));
+      protected void onPostExecute(Response.CourseList resp) {
+	  addAll(resp.getList());
 	  notifyOnChangeListeners();
-	} catch (JSONException e) {
-	    if(DEBUG) Log.w("Udacity.UdacityConnection.fetchCourseList()",
-		    "Server did not return valid JSON::" + e);
-	}
       }
-    }.execute(Request.coursesOfInterest());
+    }.execute(Request.coursesOfInterestBuilder().build());
   }	
   /**
    * Class to represent members of the CourseList object: courses.
@@ -183,7 +158,7 @@ public class UdacityCourseList extends LinkedList<UdacityCourseList.Course>
     /** relative path of this course */
     String course_URI = null;
     /** information extracted from account.courses_of_interest response*/
-    JSONObject course_info;
+    Response.CourseInfo course_info;
     /** units associated with this course*/
     LinkedList<CourseRev.Unit> unitList;
     /** units mapped to their list of odered lists of lists of nuggets. */
@@ -194,7 +169,7 @@ public class UdacityCourseList extends LinkedList<UdacityCourseList.Course>
      * started to populate this course with units and nuggets
      * @param course_info the info returned from GET accounts.courses_of_interest
      */
-    protected Course(JSONObject course_info){
+    protected Course(Response.CourseInfo course_info){
       this.course_info = course_info;
       this.unitList = new LinkedList<CourseRev.Unit>();
       this.unitToNug = new HashMap<String, List<List<CourseRev.Unit.Nugget>>>();
@@ -222,7 +197,7 @@ public class UdacityCourseList extends LinkedList<UdacityCourseList.Course>
      * account.courses_of_interest.
      * @return response from GET account.courses_of_intrest representing this course.
      */
-    public JSONObject getCourseInfo() {
+    public Response.CourseInfo getCourseInfo() {
       return course_info;
     }
     /**
@@ -231,16 +206,7 @@ public class UdacityCourseList extends LinkedList<UdacityCourseList.Course>
      * @return URL of the icon for this course.
      */
     public String getIconURL() {
-      String ret = "";
-      try {
-	ret = course_info.getString(JSON_ICON);
-	//for some odd reason, some of the image urls are missing the leading http:
-	ret = ret.substring(0,5).equalsIgnoreCase("http:")? ret : "http:"+ret;
-      } catch (JSONException e){
-	if(DEBUG) Log.w("Udacity.UdacityCourseList.getIconURL()","invalid JSON"+e);
-	revalidateCourse();
-      }
-      return ret;
+      return this.course_info.getIconUrl();
     }
     /** 
      * Gets the user friendly name for this course from the GET 
@@ -248,14 +214,7 @@ public class UdacityCourseList extends LinkedList<UdacityCourseList.Course>
      * @return User friendly name of this course
      */
     public String getName() {
-      String ret = "";
-      try {
-	ret = course_info.getString(JSON_NAME);
-      } catch (JSONException e){
-	if(DEBUG) Log.w("Udacity.UdacityCourseList.getIconURL()","invalid JSON"+e);
-	revalidateCourse();
-      }
-      return ret;
+      return this.course_info.getName();
     } 
     /**
      * Gets the course Id from the GET account.courses_of_interest 
@@ -263,14 +222,7 @@ public class UdacityCourseList extends LinkedList<UdacityCourseList.Course>
      * @return course catalog type id of this course
      */
     public String getId() {
-      String ret = "";
-      try {
-	ret = course_info.getString(JSON_ID);
-      } catch (JSONException e){
-	if(DEBUG) Log.w("Udacity.UdacityCourseList.getIconURL()","invalid JSON"+e);
-	revalidateCourse();
-      }
-      return ret;
+      return this.course_info.getId(); 
     }
     /**
      * Gets the field called "id_or_name" from the GET account.courses_of_interest
@@ -279,14 +231,7 @@ public class UdacityCourseList extends LinkedList<UdacityCourseList.Course>
      * @return id_or_name field in GET account.courses_of_interest response.
      */
     public String getIdOrName() {
-      String ret = "";
-      try {
-	ret = course_info.getString(JSON_ID_OR_NAME);
-      } catch (JSONException e){
-	if(DEBUG) Log.w("Udacity.UdacityCourseList.getIconURL()","invalid JSON"+e);
-	revalidateCourse();
-      }
-      return ret;
+      return this.course_info.getIdOrName();
     }
     /**
      * After the course has been populated with the GET account.courses_of_interest
@@ -323,12 +268,12 @@ public class UdacityCourseList extends LinkedList<UdacityCourseList.Course>
 	  }.execute(course_spec);
 	} else {
 	  if(DEBUG) Log.i("Udacity.UdacityCourseList.fetchNugList","fetching nugget list");
-	  udacityConn.new AsyncGSONGetTask() {
+	  udacityConn.new AsyncJSONGetTask<CourseGetResponse>() {
 	    @Override
-	    protected void onPostExecute(JSONObject JSONResp){
-	      setUnitList(JSONResp);
+	    protected void onPostExecute(CourseGetResponse resp){
+	      setUnitList(resp.getCourseRev());
 	    }
-	  }.execute( Request.courseGet(getCourseURI()));
+	  }.execute( Request.courseGetBuilder().setPath(getCourseURI()).build());
 	}
       }
     }
@@ -362,8 +307,9 @@ public class UdacityCourseList extends LinkedList<UdacityCourseList.Course>
      * course, and update the state of this course accordingly.
      * @param payload "payload" from GET course.get
      */
-    private void setUnitList(JSONObject payload){
+    private void setUnitList(CourseRev rev){
       try{
+	/*
 	//TODO this is absurd - String to JSON to String to… java object.
 	// need to build custom GSON parser.  would also allow
 	// incremental breakdown of JSON response, and smoother UI load
@@ -374,7 +320,7 @@ public class UdacityCourseList extends LinkedList<UdacityCourseList.Course>
 		json.length()+": "+json.substring(1,70));
 	
 	CourseRev rev = new Gson().fromJson(json, CourseRev.class);
-
+	*/
 	HashMap<String,CourseRev.Unit> unitMap = new HashMap<String,CourseRev.Unit>();
 
 	CourseRev.Unit unit;

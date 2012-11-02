@@ -124,8 +124,7 @@ public class SignInCredentials implements Connection.OnNewCsrfTokenListener {
    */
   public Object toJSON() throws NullCredentialsException {
        return Request.loginBuilder()
-      		     .setEmail(getEmail())
-		     .setPass(getPassword())
+      		     .setEmailPass(getEmail(), getPassword())
 		     .setToken(getCsrf_token())
 		     .build();
   }

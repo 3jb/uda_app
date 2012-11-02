@@ -26,6 +26,9 @@ import java.net.MalformedURLException;
 import org.json.JSONObject;
 import org.json.JSONException;
 import org.json.JSONArray;
+
+import com.udacity.api.Request;
+import com.udacity.api.Response;
 /**
  *  <b>Start here</b>:: This is the Activity Class of the Application, 
  *  most of the C from MVC is intended to end up here.
@@ -188,6 +191,15 @@ public class Udacity extends FragmentActivity implements
 	(ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
       NetworkInfo netfo = connMgr.getActiveNetworkInfo();
       return ( netfo != null && netfo.isConnected() );
+    }
+    @Override
+    protected Request<Response.Login> getCredentialsRequest() {
+      @SuppressWarnings("unchecked")
+      Request<Response.Login> ret = Request.loginBuilder()
+		    .setEmailPass(siCred.getEmail(), siCred.getPassword())
+		    .setToken(siCred.getCsrf_token())
+		    .build();
+      return ret;
     }
     /**
      *  Astracted method to snatch the user credentials for log-in.
