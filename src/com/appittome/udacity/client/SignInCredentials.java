@@ -1,7 +1,5 @@
 package com.appittome.udacity.client;
 
-import org.json.JSONObject;
-import org.json.JSONException;
 import android.util.Log;
 import com.udacity.api.Request;
 /**

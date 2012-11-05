@@ -12,10 +12,6 @@ import java.util.Iterator;
 import java.util.HashSet;
 import java.util.Iterator;
 
-import org.json.JSONObject;
-import org.json.JSONArray;
-import org.json.JSONException;
-
 import com.google.gson.Gson;
 import com.udacity.api.CourseRev;
 import com.udacity.api.Request;
@@ -47,20 +43,6 @@ public class UdacityCourseList extends LinkedList<UdacityCourseList.Course>
     addOnChangeListener(ui);
   }
 
-  /**
-   * CourseList instantiation initializes single onCourseListChangeListener, and 
-   * initial course list from JSON payload. Listener will be notified anytime 
-   * underlying course hierarchy is modified. JSON payload will be used to 
-   * initialize course graph.
-   * @param ui Listener object that responds to graph changes in the course list.
-   * @param payload JSONObject response from GET account.courses_of_interest.
-   * @throws JSONException if JSON object does not conform to expected format.
-   *
-  public UdacityCourseList(JSONObject payload, OnCourseListChangeListener ui) 
-							      throws JSONException{
-    addOnChangeListener(ui);
-    addAll(payload.getJSONArray("courses"));
-  }*/
   /**
    * Takes JSON response from account.courses_of_interest and builds a course list.
    * Course constructor invokes course.get
@@ -164,8 +146,8 @@ public class UdacityCourseList extends LinkedList<UdacityCourseList.Course>
     /** units mapped to their list of odered lists of lists of nuggets. */
     Map<String, List<List<CourseRev.Unit.Nugget>>> unitToNug;
     /**
-     * Instantiate a Course object by building it around the JSONObject passed
-     * as an argument.  New lists are instantiated, then an async process is 
+     * Instantiate a Course object by building it around the course info 
+     * {@code Response}. New lists are instantiated, then an async process is 
      * started to populate this course with units and nuggets
      * @param course_info the info returned from GET accounts.courses_of_interest
      */
@@ -193,8 +175,8 @@ public class UdacityCourseList extends LinkedList<UdacityCourseList.Course>
       return unitList;
     }
     /**
-     * Gets the JSONObject representing this course returned by GET
-     * account.courses_of_interest.
+     * Gets the most recent respones to a GET
+     * account.courses_of_interest {@code Request}. {@see com.udacity.api.Request}
      * @return response from GET account.courses_of_intrest representing this course.
      */
     public Response.CourseInfo getCourseInfo() {
@@ -236,8 +218,8 @@ public class UdacityCourseList extends LinkedList<UdacityCourseList.Course>
     /**
      * After the course has been populated with the GET account.courses_of_interest
      * info, this object is ready to GET course.get. Fetch the remainder 
-     * of the course info: units, and nugget lists.  This request receives a 20-30k 
-     * JSONObject as a response.
+     * of the course info: units, and nugget lists.  This request receives a 200-300k 
+     * JSON Object {@see com.udacity.api.CourseGetResponse} as a response.
      */
     private void fetchUnitList() {
       //first we need to figure out where the most recent course revision actually is.
@@ -301,26 +283,12 @@ public class UdacityCourseList extends LinkedList<UdacityCourseList.Course>
     }
     /**
      * This method disects the response from GET course.get.
-     * Uses a org.json.JSONObject to pull the "course_rev" field from the 
-     * payload, and then loads that into a GSON parser to create a native
-     * java object used to extract the graph of units and nuggets for this
+     * Extracts the ordered graph of units and nuggets for this
      * course, and update the state of this course accordingly.
-     * @param payload "payload" from GET course.get
+     * @param rev from {@code GET course.get - payload.course_rev}
      */
     private void setUnitList(CourseRev rev){
       try{
-	/*
-	//TODO this is absurd - String to JSON to String to… java object.
-	// need to build custom GSON parser.  would also allow
-	// incremental breakdown of JSON response, and smoother UI load
-	String json = payload.getJSONObject("payload")
-			      .getJSONObject("course_rev").toString();
-  
-	Log.i("udacity.CourseList.Course.setUnitList", 
-		json.length()+": "+json.substring(1,70));
-	
-	CourseRev rev = new Gson().fromJson(json, CourseRev.class);
-	*/
 	HashMap<String,CourseRev.Unit> unitMap = new HashMap<String,CourseRev.Unit>();
 
 	CourseRev.Unit unit;

@@ -23,10 +23,6 @@ import android.net.NetworkInfo;
 import java.net.URL;
 import java.net.MalformedURLException;
 
-import org.json.JSONObject;
-import org.json.JSONException;
-import org.json.JSONArray;
-
 import com.udacity.api.Request;
 import com.udacity.api.Response;
 /**
@@ -200,18 +196,6 @@ public class Udacity extends FragmentActivity implements
 		    .setToken(siCred.getCsrf_token())
 		    .build();
       return ret;
-    }
-    /**
-     *  Astracted method to snatch the user credentials for log-in.
-     *  This was quicker than implementing a listener interface, and while
-     *  Connection was already subclassed here, provided a convinient way to 
-     *  snatch the credentials.
-     *
-     *  @return Object representing the user credentials appropriate for login
-     */
-    @Override
-    protected Object getJSONCredentials() {
-      return siCred.toJSON();
     }
     /**
      *  Provided credentials failed, so we'll re-prompt the user.

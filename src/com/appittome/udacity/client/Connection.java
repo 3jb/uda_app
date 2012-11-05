@@ -15,9 +15,6 @@ import java.io.OutputStream;
 import java.io.BufferedOutputStream;
 import java.io.IOException;
 
-import org.json.JSONObject;
-import org.json.JSONException;
-
 import org.apache.commons.io.IOUtils;
 
 import java.util.regex.Matcher;
@@ -75,10 +72,12 @@ public abstract class Connection
   abstract boolean connectionAvailable();
   /**
    * Implemented in the main activity to give access to the 
-   * {@link SignInCredentials} Object.
-   * @return JSONObject representing valid credentials for login
+   * {@link SignInCredentials} Object. More than likely,
+   * when I find time - this will change drastically.
+   * @return Request<Response.Login> credentials for login
    */
-  abstract Object getJSONCredentials();
+  //TODO The SignInCredentials should probably be a owned in
+  // some way by the connection. 
   abstract Request<Response.Login> getCredentialsRequest();
 
   /**
@@ -167,7 +166,7 @@ public abstract class Connection
    * Attempts to fetch a valid cookie credential from the server. The user
    * will be prompted for credentials if none exist, and then this connection
    * will attempt to get a vaild session cookie from the server. Note: 
-   * this is an async process that will <code>notifyConnectionReadyListeners</code>.
+   * this is an async process that will {@code notifyConnectionReadyListeners}.
    */
   public void fetchNewCookie() {
     try {
@@ -195,7 +194,7 @@ public abstract class Connection
    * and if the credentials worked there will be "Sign Out" found somewhere
    * on the page. Override this to provide your own method.
    * @param page the full text of a refresh response after POST of 
-   *               credentials JSONObject
+   *               credentials 
    * @return boolean true when the connection has successfully logged in.
    */
   protected boolean loggedInto(String page) {
@@ -248,13 +247,13 @@ public abstract class Connection
   }
 
   /**
-   * Send a JSONObject to the server at URL+AJAX_SPEC via a GET request.
-   * Extend with onPostExecute, then run with <code>execute</code>
+   * {@code GET}s a JSON request {@see com.udacity.api.Request} at URL+AJAX_SPEC.
+   * Extend with onPostExecute, then run with {@code execute}
    */
   public class AsyncJSONGetTask<T> extends AsyncTask<Request<T>, Integer, T >
   {
     /**
-     * Send a JSONObject to URL+AJAX_SPEC via GET.
+     * Send a JSON object to URL+AJAX_SPEC via GET.
      * Array parameters will return the last reponse in the array.
      * @param requests objects to be sent
      * @return T response object
@@ -275,7 +274,7 @@ public abstract class Connection
     }
   }
   /**
-   * POST JSON to URL+AJAX_SPEC.
+   * {@code POST}s JSON to URL+AJAX_SPEC. {@see com.udacity.api.Request}
    * Extended with onPostExecute, and run with {@code execute}
    */
   public class AsyncJSONPostTask<T> extends AsyncTask<Request<T>, Integer, T>

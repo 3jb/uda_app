@@ -20,9 +20,6 @@ import java.util.List;
 
 import android.graphics.drawable.Drawable;
 
-import org.json.JSONObject;
-import org.json.JSONException;
-
 import com.udacity.api.CourseRev;
 /**
  * Custom array adapter to represent unit in listFragment.
